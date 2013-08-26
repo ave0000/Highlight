@@ -1,0 +1,49 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Queue Highlights</title>
+    <script type='text/javascript' src="http://code.angularjs.org/1.0.1/angular-1.0.1.min.js"></script>
+    <script src="table.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/queueview.css">
+</head>
+<body>
+
+<div ng-app="myApp">
+<div ng-controller="Dynamic">
+<span ng-bind="title">Queue Data</span>
+<select ng-init='getQueueList()' ng-model="queueList" ng-change="changeRefresh()" ng-options="name for name in queueList"><option>Enterprise (All Teams)</option></select>
+<label for=timeout>Timeout (sec):</label><input id=timeout size=2 value="3" ng-model="refreshTime" ng-change="changeRefresh()">
+
+<span ng-show="loading">Loading</span>
+
+<table ng-init="loadData()">
+    <tr>
+        <th class="ticketColumnId">Ticket</th>
+        <th class="ticketColumnAge">Age</th>
+        <th class="ticketColumnAccount">Account</th>
+        <th>subject</th>
+        <th class="ticketColumnTeam">Team</th>
+        <th class="ticketColumnStatus">Status</th>
+        <th class="ticketColumnPlatforms">Platforms</th>
+    </tr>
+    <tr ng-repeat="t in tickets">
+        <td><a href="https://core.rackspace.com/ticket/{{t.number}}">{{t.number}}</a></td>
+        <td ng-bind="t.age"></td>
+        <td><a href="https://core.rackspace.com/account/{{t.account_id}}">{{t.account}}</a></td>
+        <td ng-bind="t.subject"></td>
+        <td ng-bind="t.team"></td>
+        <td style="background-color:{{t.statusColor}};">{{t.status}}</td>
+        <td ng-bind-html-unsafe="t.statuses"></td>
+    </tr>
+</table>
+
+</div>
+</div>
+
+<div><a href="mailto:avery.scott@rackspace.com?Subject=Highlight">Questions, requests?</a></div>
+
+</body>
+</html>
+

@@ -1,0 +1,74 @@
+body {
+    font:8pt helvetica;
+    margin:0;
+}
+
+th {
+    background: #a8a8a8;
+    font-weight: bold;
+    padding: 2px;
+    border-bottom: 1px solid #afafaf;
+}
+
+tr {
+    height: 28px;
+    margin:0;padding:0;
+}
+tr:nth-child(odd)       { background-color:#eee; }
+tr:nth-child(even)      { background-color:#fff; }
+tr:hover {
+    background-color: #afafaf;
+}
+
+table {
+    border-spacing: 0;
+    width:100%;
+    /*margin-bottom:20px;*/
+}
+
+td {
+    border-top:1px solid;
+    border-color: #afafaf;
+    margin:0;padding:0;
+}
+
+td img {width:16px;}
+
+a {
+    text-decoration:none;
+    display:block;
+}
+a:hover {
+    text-decoration:underline;
+}
+
+.green {
+    background-color:green;
+}
+.yellow {
+    font-weight: bold;
+    background-color:yellow;
+}
+.red {
+    font-weight: bold;
+    background-color:red;
+}
+
+.ticketColumnId {
+    width:8em;
+}
+.ticketColumnStatus{
+    width:13em;
+}
+.ticketColumnTeam{
+    width:6em;
+}
+.ticketColumnScore{
+    width:4.5em;
+}
+.ticketColumnAge{
+    width:6em;
+}
+.ticketColumnPlatforms{
+    width:6em;
+}

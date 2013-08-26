@@ -1,0 +1,119 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Queue Highlights</title>
+    <script type='text/javascript' src="http://code.angularjs.org/1.0.1/angular-1.0.1.min.js"></script>
+    <script src="angtable.js"></script>
+    <style type='text/css'>
+        table {
+            border: 1px solid #666;
+            width: 100%;
+        }
+        th {
+            background: #f8f8f8;
+            font-weight: bold;
+            padding: 2px;
+        }
+    </style>
+    <link rel="stylesheet" type="text/css" href="css/queueview.css">
+
+</head>
+<body>
+  <div ng-app="myApp">
+<div ng-controller="PeopleCtrl">
+    <p>    Click <a ng-click="loadPeople()">here</a> to load data.</p>
+        <span ng-show="loading">Loading</span>
+<table ng-init="loadPeople()">
+    <tr>
+        <th>First Name</th>
+        <th>Last Name</th>
+        <th>OS</th>
+        <th>Reason</th>
+    </tr>
+    <tr ng-repeat="person in people">
+        <td>{{person.firstName}}</td>
+        <td>{{person.lastName}}</td>
+        <td>{{person.specialty}}</td>
+        <td>{{person.notes}}</td>
+    </tr>
+</table>
+</div>
+
+<div ng-controller="Summary" ng-init="loadData()">
+<h2>Summary</h2>
+    <p>    Click <a ng-click="loadData()">here</a> to load data.</p>
+<!--<table>
+    <tr>
+        <td>Queue</td>
+        <td>Tickets</td>
+        <td>Latency</td>
+    </tr>
+    <tr ng-repeat="queue in summaries">
+        <th ng-bind="queue.profile_name"></th>
+        <td ng-bind="queue.total_count"></td>
+        <td>{{queue.latency_20}}</td>
+    </tr>
+</table>-->
+<table>
+    <tr>
+        <th>Time</th>
+        <th ng-repeat="queue in summaries" ng-bind="queue.profile_name"></th>
+    </tr>
+    
+    <tr>
+        <td rowspan=2 ng-bind="timeStamp"></td>
+        <td ng-repeat="queue in summaries" ng-bind="queue.total_count"></td>
+    </tr>
+    <tr>
+        <td ng-repeat="queue in summaries" ng-bind="queue.latency_20"></td>
+    </tr>
+</table>
+</div>
+
+
+<div ng-controller="Dynamic">
+<h2 ng-bind="queueListSelect.value">Dynamic Data</h2>
+    <p>    Click <a ng-click="loadFeedback()">here</a> to reload data.</p>
+    <div>
+        <label for=queueList>Queue:</label>
+        <select ng-init="getQueueList()" id=queueList ng-model="queueListSelect" ng-options="name for (name,shortname) in queueList">
+            <option value="">Default</option>
+        </select>
+        <label for=specialFilter>Special Filters:</label>
+        <select ng-init="getFilterList()" id=specialFilter ng-model="filterListSelect" ng-options="filter for filter in filterList">
+            <option value="">None</option>
+            <option value="feedback">Feedback</option>
+        </select>
+        <label for=timeout>Timeout:</label><input id=timeout size=2 value="3" ng-model="refreshTime" ng-change="changeRefresh()">
+        <span ng-show="gettingFeedback">Loading</span>
+    </div>
+<table ng-init="loadFeedback()">
+    <tr>
+        <th>ticket_link</th>
+        <th>age</th>
+        <th>score</th>
+        <th>account_link</th>
+        <th>subject</th>
+        <th>team</th>
+        <th>status_</th>
+        <th>platforms_</th>
+    </tr>
+    <tr ng-repeat="feedback in feedbacks">
+        <td ng-bind-html-unsafe="feedback.ticket_link"></td>
+        <td ng-bind="feedback.age"></td>
+        <td ng-bind="feedback.score"></td>
+        <td ng-bind-html-unsafe="feedback.account_link"></td>
+        <td ng-bind="feedback.subject"></td>
+        <td ng-bind="feedback.team"></td>
+        <td ng-bind-html-unsafe="feedback.status_"></td>
+        <td ng-bind-html-unsafe="feedback.platforms_"></td>
+    </tr>
+</table>
+</div>
+
+<div><a href="mailto:avery.scott@rackspace.com?Subject=Highlight">Questions, requests?</a>
+
+</body>
+</html>

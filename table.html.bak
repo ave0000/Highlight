@@ -1,0 +1,69 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Queue Highlights</title>
+    <script type='text/javascript' src="http://code.angularjs.org/1.0.1/angular-1.0.1.min.js"></script>
+    <script type='text/javascript' src="http://cdnjs.cloudflare.com/ajax/libs/moment.js/2.1.0/moment.min.js"></script>
+    <script src="angtable.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/queueview.css">
+
+</head>
+<body>
+  <div ng-app="myApp">
+<div ng-controller="Summary" ng-init="loadData()">
+<table>
+    <tr>
+        <th>Time <a ng-click="loadData()">Reload</a></th>
+        <th ng-repeat="queue in summaries" ng-bind="queue.profile_name"></th>
+    </tr>
+    <tr>
+        <td rowspan=2 ng-bind="timeStamp"></td>
+        <td ng-repeat="queue in summaries" ng-bind="queue.total_count"></td>
+    </tr>
+    <tr class=green>
+        <td ng-repeat="queue in summaries" ng-bind="queue.latency_20 | timeCalc " ng-class="{red:(queue.latency_20 > 21600), yellow:(queue.latency_20 > 10800) }"></td>
+    </tr>
+</table>
+</div>
+<div ng-controller="Dynamic" id="queueTable">
+    <div>
+        <label for=queueList>Queue:</label>
+        <select ng-init="getQueueList()" id=queueList ng-model="queueListSelect" ng-options="name for (name,shortname) in queueList" ng-change="changeRefresh()">
+            <option value="">Enterprise All</option>
+        </select>
+        <label for=specialFilter>Special Filters:</label>
+        <select ng-init="getFilterList()" id=specialFilter ng-model="filterListSelect" ng-options="filter for filter in filterList" ng-change="changeRefresh()">
+            <option value="">None</option>
+            <option value="feedback">Feedback</option>
+        </select>
+        <label for=timeout>Timeout:</label><input id=timeout size=2 value="3" ng-model="refreshTime" ng-change="changeRefresh()">
+        <span ng-show="gettingFeedback">Loading</span>
+    </div>
+<table ng-init="loadFeedback()">
+    <tr>
+        <th class="ticketColumnId">Ticket</th>
+        <th class="ticketColumnAge">Age</th>
+        <th class="ticketColumnScore">Score</th>
+        <th class="ticketColumnAccount">Account</th>
+        <th class="ticketColumnSubject">Subject</th>
+        <th class="ticketColumnTeam">Team</th>
+        <th class="ticketColumnStatus">Status</th>
+        <th class="ticketColumnPlatforms">Platforms</th>
+    </tr>
+    <tr ng-repeat="feedback in feedbacks">
+        <td ng-bind-html-unsafe="feedback.ticket_link"></td>
+        <td ng-bind="feedback.age"></td>
+        <td ng-bind="feedback.score"></td>
+        <td ng-bind-html-unsafe="feedback.OnWatch, feedback.account_link"></td>
+        <td ng-bind="feedback.subject"></td>
+        <td ng-bind="feedback.team"></td>
+        <td ng-bind-html-unsafe="feedback.status_"></td>
+        <td ng-bind-html-unsafe="feedback.platforms_"></td>
+    </tr>
+</table>
+</div>
+
+</body>
+</html>
