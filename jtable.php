@@ -17,13 +17,16 @@ $profiles = array(
 
 function saveCache($data,$name='cache') {
     $filename = 'cache/'.$name.'.json';
-    file_put_contents($filename,$data);
+    @file_put_contents($filename,$data);
 }
 
 function getProfileData($profile) {
     $hasCache = getCachedProfile($profile);
-    if($hasCache !== false)
-        return json_decode($hasCache);
+    if($hasCache !== false) {
+        $json = json_decode($hasCache);
+        if($json != NULL)
+            return $json;
+    }
     $slick = 'http://oneview.rackspace.com/slick.php';
     $url = $slick . "?fmt=json&latency=latency_20&profile=" . urlencode($profile);
     $contents = file_get_contents($url);
@@ -32,6 +35,9 @@ function getProfileData($profile) {
 }
 function getCachedProfile($profile,$age=60){
     $cacheFile = 'cache/'.$profile.'.json';
+    if(!file_exists('cache/'))
+        return false;
+
     if(!file_exists($cacheFile))
         return false;
 
@@ -41,7 +47,9 @@ function getCachedProfile($profile,$age=60){
     if($fileage > 60 ) {
         return false;
     }
-    return file_get_contents($cacheFile);
+    $data = file_get_contents($cacheFile);
+    
+    return $data;
 }
 
 function getProfileList(){
