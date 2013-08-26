@@ -45,7 +45,7 @@ function Dynamic($scope, $http, $timeout) {
                     "subject":"subject",
                     "team":"support_team.name",
                     //"assignee":"assignee.name",
-                    "statuses":"all_status_flags",
+                    //"statuses":"all_status_flags",
                     "linux":"has_linux_servers",
                     "windows":"has_windows_servers",
                     "critical":"has_critical_servers"
@@ -89,7 +89,7 @@ function Dynamic($scope, $http, $timeout) {
     };
     
     $scope.processTickets = function(data) {
-            //data.forEach($scope.processTicket);
+            data.forEach($scope.processTicket);
             return data;
     };
     $scope.processTicket = function(t) {
