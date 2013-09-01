@@ -27,10 +27,9 @@ function Dynamic($scope, $http, $timeout) {
                         //[ "queue_name", "=", "Enterprise Services (All Teams)" ], 
                         //[ "queue_name", "=", "Ent - All" ], 
                         //"&",
-                        //[ "current_assignee_sso", "=", $scope.sso], 
                         [ "current_assignee_sso", "=", $scope.sso], 
-                        //"&",
-                        //[ "status_type", "=", 4 ]
+                        "&",
+                        [ "status_type", "=", 4 ]
                     ], 
                     //"limit": 5,
                     "offset": 0
