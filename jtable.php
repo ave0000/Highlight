@@ -15,24 +15,13 @@ $profiles = array(
     "Enterprise ARIC Only"=>"Aric"
 );
 
+//store data for later retrieval
+//coupled with getCachedProfile
 function saveCache($data,$name='cache') {
     $filename = 'cache/'.$name.'.json';
     @file_put_contents($filename,$data);
 }
 
-function getProfileData($profile) {
-    $hasCache = getCachedProfile($profile);
-    if($hasCache !== false) {
-        $json = json_decode($hasCache);
-        if($json != NULL)
-            return $json;
-    }
-    $slick = 'http://oneview.rackspace.com/slick.php';
-    $url = $slick . "?fmt=json&latency=latency_20&profile=" . urlencode($profile);
-    $contents = file_get_contents($url);
-    saveCache($contents,$profile);
-    return json_decode($contents);
-}
 function getCachedProfile($profile,$age=60){
     $cacheFile = 'cache/'.$profile.'.json';
     if(!file_exists('cache/'))
@@ -51,16 +40,40 @@ function getCachedProfile($profile,$age=60){
     
     return $data;
 }
+function getProfileData($profile) {
+    $hasCache = getCachedProfile($profile);
+    if($hasCache !== false) {
+        $json = json_decode($hasCache);
+        if($json != NULL)
+            return $json;
+    }
+    $slick = 'http://oneview.rackspace.com/slick.php';
+    $url = $slick . "?fmt=json&latency=latency_20&profile=" . urlencode($profile);
+    $contents = file_get_contents($url);
+    saveCache($contents,$profile);
+    return json_decode($contents);
+}
 
 function getProfileList(){
     //ick ...
     include('profile_list.inc');
     $out = array();
     $profiles = array_keys($qs);
+    $excludes = array('Corp','Strat','Priority');
+    $e = count($excludes);
 
+    //Rewrite me with a better method of filtering
     foreach($profiles as $q) {
-        if(strpos($q, "Corp") === FALSE && strpos($q,"Strat") === FALSE)
-            $out[$q] = $q;
+	$hasBad = false;
+	for($i=0;$i<$e;$i++){
+        	if(strpos($q, $excludes[$i])!==FALSE){
+			$hasBad = true;
+			break;
+		}
+	}
+	if(!$hasBad){
+		$out[$q] = $q;
+	}
     }
     return $out;
 }
@@ -133,13 +146,25 @@ function findMultiTicketAccounts($tickets,$min_count=4) {
     return $out;
 }
 
-
+//not sure if there's demand for this on the windows side
+function removeSneaky($queue,$type='OPSMGR'){
+	$out = array();
+	$notLinux = array(
+		'OPSMGR',
+	);
+	foreach($queue as $ticket){
+		if(stristr($ticket->subject,$notLinux[0])===FALSE)
+			$out[] = $ticket;
+	}
+	return $out;
+}
 
 
 $filters = array(
     "Feedback Received"=>findStatus,
     "Multi-Account"=>findMultiTicketAccounts,
-    "Fine Wines (Aged)"=>findAgedTickets
+    "Fine Wines (Aged)"=>findAgedTickets,
+    "go away OPSMGR"=>removeSneaky
 );
 
 /*
