@@ -2,45 +2,27 @@
 <html>
 <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-    <title>Queue Highlights</title>
-    <script type='text/javascript' src="http://code.angularjs.org/1.0.1/angular-1.0.1.min.js"></script>
-    <script src="ctk.js"></script>
+    <title>HuntGroups</title>
     <link rel="stylesheet" type="text/css" href="../css/queueview.css">
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js"></script>
 </head>
 <body>
 <script>
+angular.module('myApp',[]);
 <?php
     $url = 'http://myhuntgroups.rackspace.com/vdns.json';
     $data = file_get_contents($url);
-    echo " var jsonData = '".$data."';";
+    echo " var jsonData = ".$data.";";
  ?>
+
 </script>
-
 <div ng-app="myApp">
-<div ng-controller="Dynamic">
+<?php
 
-<table>
-    <tr>
-        <th class="ticketColumnId">Ticket</th>
-        <th class="ticketColumnAge">Age</th>
-        <th class="ticketColumnAccount">Account</th>
-        <th>subject</th>
-        <th class="ticketColumnTeam">Team</th>
-        <th class="ticketColumnStatus">Status</th>
-        <th class="ticketColumnPlatforms">Platforms</th>
-    </tr>
-    <tr ng-repeat="t in tickets">
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-    </tr>
-</table>
-
-</div>
+    require_once('printTable.php');
+    $table = printTable(json_decode($data));
+echo $table;  
+?>
 </div>
 
 <div><a href="mailto:avery.scott@rackspace.com?Subject=Highlight">Questions, requests?</a></div>
