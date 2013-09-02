@@ -33,7 +33,7 @@
         <select ng-init="getQueueList()" id=queueList ng-model="queueListSelect" ng-options="name for (name,shortname) in queueList" ng-change="changeRefresh()">
             <option value=''>Enterprise All</option>
         </select>
-        <label for=specialFilter>Special Filters:</label>
+        <label for=specialFilter>Filters:</label>
         <select ng-init="getFilterList()" id=specialFilter ng-model="filterListSelect" ng-options="filter for filter in filterList" ng-change="changeRefresh()">
             <option value="">None</option>
         </select>
