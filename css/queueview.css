@@ -42,16 +42,32 @@ a:hover {
     text-decoration:underline;
 }
 
+.statTable {
+	table-layout: fixed;
+}
+
+.statTable tr{
+	height: 18px;
+}
+.statTable td {
+	text-align: right;
+	border-right: 1px solid black;
+	padding:0.5em;
+}	
+
 .green {
-    background-color:green;
+    /*color: white;*/
+    background-color:#91B386;
 }
 .yellow {
+    color:black;
     font-weight: bold;
-    background-color:yellow;
+    background-color:#F5E856;
 }
 .red {
+    color:black;
     font-weight: bold;
-    background-color:red;
+    background-color:#FA3939;
 }
 
 .ticketColumnId {
