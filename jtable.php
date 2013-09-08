@@ -1,27 +1,24 @@
 <?php
 
-// The queues we'd like to see with a friendly name
-$profiles = array(
-    "Enterprise All"=>"EntAll",
-    "Enterprise All (Linux)"=>"EntAll",
-    "Enterprise All (Windows)"=>"EntAll",
-    "Enterprise East (Linux)"=>"EastLin",
-    "Enterprise East (Windows)"=>"EastWin",
-    "Enterprise West (Linux)"=>"WestLin",
-    "Enterprise West (Windows)"=>"WestWin",
-    "Enterprise F1000 (Linux)"=>"F1kLin",
-    "Enterprise F1000 (Windows)"=>"F1kWin",
-    "Enterprise Cloud Only"=>"Cloud",
-    "Enterprise ARIC Only"=>"Aric"
-);
 
 //store data for later retrieval
 //coupled with getCachedProfile
+/*
 function saveCache($data,$name='cache') {
     $filename = 'cache/'.$name.'.json';
     @file_put_contents($filename,$data);
 }
+*/
+function saveCache($data,$name='cache'){
+	$redis = new Redis();
+	$redis->pconnect('127.0.0.1', 6379);
+	$data = json_decode($data);
+	$data = serialize($data);
+	$redis->set($name, $data);
+	$redis->expire($name, 30);
+}
 
+/*
 function getCachedProfile($profile,$age=60){
     $cacheFile = 'cache/'.$profile.'.json';
     if(!file_exists('cache/'))
@@ -32,21 +29,28 @@ function getCachedProfile($profile,$age=60){
 
     $mtime = filemtime($cacheFile);
     $fileage = time() - $mtime;
-    #echo "file age".$fileage."<br>\n";
     if($fileage > 60 ) {
         return false;
     }
     $data = file_get_contents($cacheFile);
     
-    return $data;
+    return json_decode($data);
 }
+*/
+
+function getCachedProfile($profile) {
+        $redis = new Redis();
+        $redis->pconnect('127.0.0.1', 6379);
+	$boop = $redis->get($profile);
+	return unserialize($boop);
+}
+
 function getProfileData($profile) {
     $hasCache = getCachedProfile($profile);
     if($hasCache !== false) {
-        $json = json_decode($hasCache);
-        if($json != NULL)
-            return $json;
+        return $hasCache;
     }
+
     $slick = 'http://oneview.rackspace.com/slick.php';
     $url = $slick . "?fmt=json&latency=latency_20&profile=" . urlencode($profile);
     $contents = file_get_contents($url);
@@ -55,6 +59,12 @@ function getProfileData($profile) {
 }
 
 function getProfileList(){
+	/*
+    $hasCache = getCachedProfile('profileList');
+    if($hasCache !== false) 
+        return $hasCache;
+*/
+
     //ick ...
     include('profile_list.inc');
     $out = array();
@@ -74,15 +84,32 @@ function getProfileList(){
 	if(!$hasBad){
 		$out[$q] = $q;
 	}
-    }
+    } 
+    //saveCache($out,'profileList');
     return $out;
+}
+
+function getProfileListShort() {
+        $trims = array(
+                'Enterprise'=>'Ent',
+                'Team'=>'T:',
+                'Linux'=>'Lin',
+                'Windows'=>'Win'
+        );
+        $profiles = getProfileList();
+
+        foreach($profiles as $q => $name){
+                $name = str_replace(array_keys($trims),$trims,$name);
+                $profiles[$q] = $name;
+        }
+        return $profiles;
 }
 
 //Get data
 function getQueueData($profiles) {
     $data = array();
     foreach($profiles as $profile => $name) {
-        $data[$profile] = getProfileData($profile);
+        $data[$name] = getProfileData($profile);
     }
     return $data;
 }
@@ -91,15 +118,11 @@ function getSummaries($profiles,$date='') {
     $data = getQueueData($profiles);
     $summary->timeStamp = time();
     foreach($data as $profile => $object) {
-        $summary->summaries[] = $object->summary;
+        $summary->summaries[$profile] = $object->summary;
     }
     return $summary;
 }
 
-#echo json_encode($summary);
-/* END: data collector */
-
-//require_once('printQueue.php');
 
 //given a queue, find the tickets that are over 'hours' old
 function findAgedTickets($queue,$hours=4) {
@@ -147,68 +170,74 @@ function findMultiTicketAccounts($tickets,$min_count=4) {
 }
 
 //not sure if there's demand for this on the windows side
-function removeSneaky($queue,$type='OPSMGR'){
+function goAway($queue,$type='OPSMGR'){
+	if($type == "") return $queue;
 	$out = array();
-	$notLinux = array(
-		'OPSMGR',
-	);
 	foreach($queue as $ticket){
-		if(stristr($ticket->subject,$notLinux[0])===FALSE)
+		if(stristr($ticket->subject,$type)===FALSE)
 			$out[] = $ticket;
 	}
 	return $out;
 }
 
+function accountFind($queue,$value) {
+	if($value == "") return $queue;
 
-$filters = array(
-    "Feedback Received"=>findStatus,
-    "Multi-Account"=>findMultiTicketAccounts,
-    "Fine Wines (Aged)"=>findAgedTickets,
-    "go away OPSMGR"=>removeSneaky
-);
+        foreach($queue as $ticket){
+                if(stristr($ticket->account_link,$value)!==FALSE)
+                        $out[] = $ticket;
+        }
+	if(count($out) < 1) {
+		$foo->subject = "No results for $value";
+		$out[] = $foo;
+	}
+        return $out;
+}
 
-/*
-$filters = array( 
-    "Feedback Received" => array( 
-        "fn" => findStatus,
-        "parameters" => array(
-            "Status" => "Feedback Received"
-        ),
-    ),
-    "Multi-Account" => array(
-        "fn" => findMultiTicketAccounts,
-        "parameters" => array(
-            "min_tickets" => 4
-        ),
-    ),
-    "Fine Wines (Aged)"=> array(
-        "fn" => findAgedTickets,
-        "parameters" => array(
-            "hours"=> 4
-        )
-    )
-);
-*/
+//describe the available filters, and their parameters
+$fil = '[
+        {
+                "name":"Feedback Received",
+                "fn":"findStatus",
+                "parameters": [{"name":"Status","value":"Feedback Received"}]
+        },{
+                "name":"Multi-Account",
+                "fn":"findMultiTicketAccounts",
+                "parameters":[{"name":"Min tickets","value":4}]
+        },{
+                "name":"Fine Wines (Aged)",
+                "fn":"findAgedTickets",
+                "parameters":[{"name":"hours","value":4}]
+        },{
+                "name":"Go Away",
+                "fn":"goAway",
+                "parameters":[{"name":"subject","value":"OPSMGR"}]
+        },{
+                "name":"Accounting",
+                "fn":"accountFind",
+                "parameters":[{"name":"account","value":"AON"}]
+	}
+]';
+$filters = json_decode($fil);
 
 if(isset($_REQUEST['showProfiles'])) {
     echo json_encode(getProfileList());
-    #echo json_encode($profiles);
 }
 
 if(isset($_REQUEST['showFilters'])){
-    echo json_encode(array_keys($filters));
+    echo json_encode($filters);
 }
 
 #@include_once('outToday.php');
 if($_REQUEST['summary'] == 'get'){
     #$data = getQueueData($profiles);
-    $summary = getSummaries($profiles);
+    //$summary = getSummaries($profiles);
+    $summary = getSummaries(getProfileListShort());
     echo json_encode($summary);
 }
 
 if($_REQUEST['table'] == "feedback") {
     $workingQueue = getProfileData($profiles[0])->queue;
-    //echo json_encode($workingQueue);
     echo json_encode(findStatus($workingQueue));
 }
 
@@ -217,19 +246,31 @@ if(isset($_REQUEST['queue'])) {
     //create an 'identifyProfile' fn
     $reqQ = $_REQUEST['queue'];
     $profiles = getProfileList();
-    $selectedProfile = $profiles['Enterprise All'];
     if(in_array($reqQ,$profiles)) {
         $selectedProfile = array_search($reqQ,$profiles);
     }else if(in_array($reqQ,$profiles)){
         $selectedProfile = $profiles[$reqQ];
+    }else{
+    	$selectedProfile = $profiles['Enterprise All'];
     }
     $queueData = getProfileData($selectedProfile)->queue;
 
-    if(isset($_REQUEST['filter']) && in_array($_REQUEST['filter'],array_keys($filters))) {
+    if(isset($_REQUEST['filter'])) {
+	$filName = $_REQUEST['filter'];
         //do filter
-        $filter = $filters[$_REQUEST['filter']];
-        $queueData = $filter($queueData);
+	foreach($filters as $f){
+		if($f->name == $_REQUEST['filter']) {
+			$filter = $f->fn;
+			if(isset($_REQUEST['filterOpt']))
+				$queueData = $filter($queueData,$_REQUEST['filterOpt']);
+			else
+				$queueData = $filter($queueData);
+		}
+	}
     }
+    // optional sortby, ignore if it's not a field
+    
+
     echo json_encode($queueData);
 }
 
