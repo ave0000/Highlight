@@ -86,6 +86,9 @@ function Dynamic($scope, $http, $timeout) {
         });
         $scope.filterList = '[Loading]';
     };
+    $scope.changeFilter = function() {
+	
+    }
 
     $scope.feedbacks = [];
     $scope.refreshTime = 30;
@@ -97,12 +100,15 @@ function Dynamic($scope, $http, $timeout) {
 
     $scope.loadFeedback = function() {
         $timeout.cancel($scope.timeOutHolder);
-        //var options = 'queue='+$scope.queueListSelect;
         var options = 'queue';
         if($scope.queueListSelect != undefined)
             options = options+'='+$scope.queueListSelect;
         if($scope.filterListSelect != undefined) {
-            options = options+'&filter='+$scope.filterListSelect;
+            options = options+'&filter='+$scope.filterListSelect.name;
+	    // TODO: if filterListSelect option is different than filterList option then ...
+	    if($scope.filterListSelect.parameters != undefined){
+		    options = options+'&filterOpt='+$scope.filterListSelect.parameters[0].value;
+	    }
         }
         $scope.gettingFeedback = true;
         var httpRequest = $http({
