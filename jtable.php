@@ -91,10 +91,12 @@ function getProfileList(){
 
 function getProfileListShort() {
         $trims = array(
-                'Enterprise'=>'Ent',
-                'Team'=>'T:',
-                'Linux'=>'Lin',
-                'Windows'=>'Win'
+                'Enterprise '=>'',
+                //'Team'=>'T:',
+                'Linux'=>'L',
+                'Windows'=>'W',
+		'Implementation'=>'imp',
+		'Latin America'=>'LATAM'
         );
         $profiles = getProfileList();
 
@@ -230,8 +232,6 @@ if(isset($_REQUEST['showFilters'])){
 
 #@include_once('outToday.php');
 if($_REQUEST['summary'] == 'get'){
-    #$data = getQueueData($profiles);
-    //$summary = getSummaries($profiles);
     $summary = getSummaries(getProfileListShort());
     echo json_encode($summary);
 }
