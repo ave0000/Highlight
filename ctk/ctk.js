@@ -17,41 +17,8 @@ function Dynamic($scope, $http, $timeout) {
     $scope.refreshTime = 300;
     //i got a cookie!
     $scope.sso = readCookie('COOKIE_last_login');
+    $scope.statusType = 4;
     $scope.title = "Tickets assigned to "+$scope.sso;
-    $scope.jsonQuery =       [
-            {
-                "class": "Ticket.Ticket", 
-                "load_arg": {
-                    "class": "Ticket.TicketWhere", 
-                    "values": [
-                        //[ "queue_name", "=", "Enterprise Services (All Teams)" ], 
-                        //[ "queue_name", "=", "Ent - All" ], 
-                        //"&",
-                        [ "current_assignee_sso", "=", $scope.sso], 
-                        "&",
-                        [ "status_type", "=", 4 ]
-                    ], 
-                    //"limit": 5,
-                    "offset": 0
-                }, 
-                "attributes": {
-                    "number":"number", 
-                    "account":"account.name",
-                    "account_id":"account.id", //needed for link
-                    "age":"age",
-                    "status":"status.name",
-                    "statusColor":"status.color",
-                    "subject":"subject",
-                    "team":"support_team.name",
-                    //"assignee":"assignee.name",
-                    //"statuses":"all_status_flags",
-                    "linux":"has_linux_servers",
-                    "windows":"has_windows_servers",
-                    "critical":"has_critical_servers"
-           //         "platform":"platform_"
-                }
-            }
-        ]
 
     $scope.changeRefresh = function() {
         //buffer modifications so we don't query on every keypress
@@ -60,6 +27,41 @@ function Dynamic($scope, $http, $timeout) {
     };
 
     $scope.loadData = function() {
+
+        $scope.jsonQuery =       [
+                {
+                    "class": "Ticket.Ticket", 
+                    "load_arg": {
+                        "class": "Ticket.TicketWhere", 
+                        "values": [
+                            //[ "queue_name", "=", "Enterprise Services (All Teams)" ], 
+                            //[ "queue_name", "=", "Ent - All" ], 
+                            //"&",
+                            [ "current_assignee_sso", "=", $scope.sso], 
+                            "&",
+                            [ "status_type", "=", $scope.statusType ]
+                        ], 
+                        //"limit": 5,
+                        "offset": 0
+                    }, 
+                    "attributes": {
+                        "number":"number", 
+                        "account":"account.name",
+                        "account_id":"account.id", //needed for link
+                        "age":"age",
+                        "status":"status.name",
+                        "statusColor":"status.color",
+                        "subject":"subject",
+                        "team":"support_team.name",
+                        //"assignee":"assignee.name",
+                        //"statuses":"all_status_flags",
+                        "linux":"has_linux_servers",
+                        "windows":"has_windows_servers",
+                        "critical":"has_critical_servers"
+                    }
+                }
+            ]
+
         //don't start more requests if we're still pending
         if($scope.loading == true) return false;
         $scope.loading = true;

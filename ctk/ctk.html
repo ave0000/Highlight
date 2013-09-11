@@ -13,6 +13,10 @@
 <div ng-app="myApp">
 <div ng-controller="Dynamic">
 <span ng-bind="title">Queue Data</span>
+<label for=ticketType>Type:</label><select id=ticketType ng-model="statusType" ng-change="changeRefresh()">
+		<option value=4>Open</option>
+		<option value=8>Active</option>
+	</select>
 <label for=timeout>Timeout (sec):</label><input id=timeout size=2 value="3" ng-model="refreshTime" ng-change="changeRefresh()">
 
 <span ng-show="loading">Loading</span>
