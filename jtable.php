@@ -133,7 +133,7 @@ function processTest($q,$profile) {
     //queue as ticket
     foreach ($q as $t){
         $t->score = getScore($t,$profile);
-        $t->subject = substr($t->subject, 0, 80);
+        //$t->subject = substr($t->subject, 0, 80);
         $t->account_name = substr($t->account_name, 0,40);
         //if($t->oldScore != $t->score)
             $out[] = $t;
