@@ -29,44 +29,44 @@ app.filter('summaryColor',function(){
     }
 );
 
-function PeopleCtrl($scope, $http) {
-    $scope.people = [];
-
-    $scope.loadPeople = function() {
-        var httpRequest = $http({
-            method: 'GET',
-            url: 'echo.php',
-            //data: 'datas'
-
-        }).success(function(data, status) {
-            $scope.people = data;
-        });
-
-    };
-
-}
-
 function Summary($scope, $http, $timeout) {
     $scope.refreshTime = 120;
-    $scope.loadData = function() {
-        $timeout.cancel($scope.refreshTimeTimer);
-        $scope.loading=true;
+    $scope.summaries = {};
+
+    $scope.loadQueue = function(queue) {
+        //$timeout.cancel($scope.refreshTimeTimer);
+        //$scope.loading=true;
         var httpRequest = $http({
             method: 'GET',
-            url: 'jtable.php?summary=get',
-            //data: 'datas'
-
+            url: 'summary.php?summary='+queue.profile+'&latency=latency_'+queue.latencyCount
         }).success(function(data, status) {
-            $scope.timeStamp = data.timeStamp;
-            $scope.summaries = data.summaries;
-            $scope.loading = false;
-            $scope.timeOutHolder = $timeout($scope.loadData, $scope.refreshTime*1000);
+            if(data.profile)
+                angular.extend($scope.summaries[data.profile],data)
+            else
+                console.log('fail: '+data);
+            //$scope.loading = false;
+            $scope.timeOutHolder = $timeout(function () {$scope.loadQueue(queue)}, $scope.refreshTime*1000);
+        }).error(function(data,status) {console.log(queue.profile+' httpfail: '+data+status);});
+    };
+    $scope.loadQueues = function(data){
+        //pre-populate
+        data.forEach(function(queue){
+            $scope.summaries[queue.profile] = queue;
         });
-
+        //fetch data
+        data.forEach($scope.loadQueue);
+    };
+    $scope.loadData = function() {
+        var httpRequest = $http({
+            method: 'GET',
+            url: 'summary.php?summaryProfiles'
+        }).success($scope.loadQueues);
     };
 }
 
 function Dynamic($scope, $http, $timeout) {
+    $scope.predicate = 'score';
+    $scope.reverse = true;
     $scope.queueList = [];
     $scope.getQueueList = function() {
         var httpRequest = $http({
@@ -86,9 +86,6 @@ function Dynamic($scope, $http, $timeout) {
         });
         $scope.filterList = '[Loading]';
     };
-    $scope.changeFilter = function() {
-	
-    }
 
     $scope.feedbacks = [];
     $scope.refreshTime = 30;
@@ -115,10 +112,14 @@ function Dynamic($scope, $http, $timeout) {
             method: 'GET',
             url: 'jtable.php?'+options,
         }).success(function(data, status) {
+            if(!data) data = [{"subject":"None"}];
             $scope.feedbacks = data;
             $scope.gettingFeedback = false;
             $scope.timeOutHolder = $timeout($scope.loadFeedback, $scope.refreshTime*1000);
         });
 
     };
+
+    $scope.sortAge = function(a) {return parseInt(a.age_seconds);};
+    $scope.sortScore = function(a) {return parseInt(a.score);};
 }

@@ -12,7 +12,7 @@ function saveCache($data,$name='cache') {
 function saveCache($data,$name='cache'){
 	$redis = new Redis();
 	$redis->pconnect('127.0.0.1', 6379);
-	$data = json_decode($data);
+	//$data = json_decode($data);
 	$data = serialize($data);
 	$redis->set($name, $data);
 	$redis->expire($name, 30);
@@ -39,8 +39,8 @@ function getCachedProfile($profile,$age=60){
 */
 
 function getCachedProfile($profile) {
-        $redis = new Redis();
-        $redis->pconnect('127.0.0.1', 6379);
+    $redis = new Redis();
+    $redis->pconnect('127.0.0.1', 6379);
 	$boop = $redis->get($profile);
 	return unserialize($boop);
 }
@@ -52,18 +52,19 @@ function getProfileData($profile) {
     }
 
     $slick = 'http://oneview.rackspace.com/slick.php';
-    $url = $slick . "?fmt=json&latency=latency_20&profile=" . urlencode($profile);
+    $url = $slick . "?fmt=json&latency=latency_1&profile=" . urlencode($profile);
     $contents = file_get_contents($url);
-    saveCache($contents,$profile);
-    return json_decode($contents);
+    $data = json_decode($contents);
+    saveCache($data,$profile);
+    return $data;
 }
 
 function getProfileList(){
-	/*
+
     $hasCache = getCachedProfile('profileList');
     if($hasCache !== false) 
         return $hasCache;
-*/
+
 
     //ick ...
     include('profile_list.inc');
@@ -74,37 +75,37 @@ function getProfileList(){
 
     //Rewrite me with a better method of filtering
     foreach($profiles as $q) {
-	$hasBad = false;
-	for($i=0;$i<$e;$i++){
+    	$hasBad = false;
+    	for($i=0;$i<$e;$i++){
         	if(strpos($q, $excludes[$i])!==FALSE){
-			$hasBad = true;
-			break;
-		}
-	}
-	if(!$hasBad){
-		$out[$q] = $q;
-	}
+    			$hasBad = true;
+    			break;
+    		}
+    	}
+    	if(!$hasBad){
+    		$out[$q] = $q;
+    	}
     } 
-    //saveCache($out,'profileList');
+    saveCache($out,'profileList');
     return $out;
 }
 
 function getProfileListShort() {
-        $trims = array(
-                'Enterprise '=>'',
-                //'Team'=>'T:',
-                'Linux'=>'L',
-                'Windows'=>'W',
-		'Implementation'=>'imp',
-		'Latin America'=>'LATAM'
-        );
-        $profiles = getProfileList();
+    $trims = array(
+        'Enterprise '=>'',
+        //'Team'=>'T:',
+        'Linux'=>'L',
+        'Windows'=>'W',
+    	'Implementation'=>'imp',
+    	'Latin America'=>'LATAM'
+    );
+    $profiles = getProfileList();
 
-        foreach($profiles as $q => $name){
-                $name = str_replace(array_keys($trims),$trims,$name);
-                $profiles[$q] = $name;
-        }
-        return $profiles;
+    foreach($profiles as $q => $name){
+            $name = str_replace(array_keys($trims),$trims,$name);
+            $profiles[$q] = $name;
+    }
+    return $profiles;
 }
 
 //Get data
@@ -125,6 +126,20 @@ function getSummaries($profiles,$date='') {
     return $summary;
 }
 
+
+/* Filters and processing */
+function processTest($q,$profile) {
+    require_once('score/score.php');
+    //queue as ticket
+    foreach ($q as $t){
+        $t->score = getScore($t,$profile);
+        $t->subject = substr($t->subject, 0, 80);
+        $t->account_name = substr($t->account_name, 0,40);
+        //if($t->oldScore != $t->score)
+            $out[] = $t;
+    }
+    return $out;
+}
 
 //given a queue, find the tickets that are over 'hours' old
 function findAgedTickets($queue,$hours=4) {
@@ -148,10 +163,8 @@ function findStatus($queue,$status="Feedback Received") {
     return array_filter($queue,$getStatuses);
 }
 
-
 //given a queue, return a queue with accounts with at least 'min_count' tickets
 function findMultiTicketAccounts($tickets,$min_count=4) {
-    //i think this is O(n log n)
     $out = array();
 
     while($tickets) {
@@ -185,10 +198,10 @@ function goAway($queue,$type='OPSMGR'){
 function accountFind($queue,$value) {
 	if($value == "") return $queue;
 
-        foreach($queue as $ticket){
-                if(stristr($ticket->account_link,$value)!==FALSE)
-                        $out[] = $ticket;
-        }
+    foreach($queue as $ticket){
+        if(stristr($ticket->account_link,$value)!==FALSE)
+        $out[] = $ticket;
+    }
 	if(count($out) < 1) {
 		$foo->subject = "No results for $value";
 		$out[] = $foo;
@@ -223,29 +236,17 @@ $fil = '[
 $filters = json_decode($fil);
 
 if(isset($_REQUEST['showProfiles'])) {
-    echo json_encode(getProfileList());
+    echo json_encode(getProfileListShort());
 }
 
 if(isset($_REQUEST['showFilters'])){
     echo json_encode($filters);
 }
 
-#@include_once('outToday.php');
-if($_REQUEST['summary'] == 'get'){
-    $summary = getSummaries(getProfileListShort());
-    echo json_encode($summary);
-}
-
-if($_REQUEST['table'] == "feedback") {
-    $workingQueue = getProfileData($profiles[0])->queue;
-    echo json_encode(findStatus($workingQueue));
-}
-
-
 if(isset($_REQUEST['queue'])) {
     //create an 'identifyProfile' fn
     $reqQ = $_REQUEST['queue'];
-    $profiles = getProfileList();
+    $profiles = getProfileListShort();
     if(in_array($reqQ,$profiles)) {
         $selectedProfile = array_search($reqQ,$profiles);
     }else if(in_array($reqQ,$profiles)){
@@ -254,24 +255,23 @@ if(isset($_REQUEST['queue'])) {
     	$selectedProfile = $profiles['Enterprise All'];
     }
     $queueData = getProfileData($selectedProfile)->queue;
+    $queueData = processTest($queueData,$selectedProfile);
 
     if(isset($_REQUEST['filter'])) {
-	$filName = $_REQUEST['filter'];
+        $filName = $_REQUEST['filter'];
         //do filter
-	foreach($filters as $f){
-		if($f->name == $_REQUEST['filter']) {
-			$filter = $f->fn;
-			if(isset($_REQUEST['filterOpt']))
-				$queueData = $filter($queueData,$_REQUEST['filterOpt']);
-			else
-				$queueData = $filter($queueData);
-		}
-	}
+    	foreach($filters as $f){
+    		if($f->name == $_REQUEST['filter']) {
+    			$filter = $f->fn;
+    			if(isset($_REQUEST['filterOpt']))
+    				$queueData = $filter($queueData,$_REQUEST['filterOpt']);
+    			else
+    				$queueData = $filter($queueData);
+    		}
+	   }
     }
     // optional sortby, ignore if it's not a field
-    
 
     echo json_encode($queueData);
 }
-
 ?>

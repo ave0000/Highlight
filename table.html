@@ -14,12 +14,16 @@
 <div ng-controller="Summary" ng-init="loadData()">
 <table class="statTable">
     <tr>
-        <th>Time <a ng-click="loadData()">Reload</a></th>
-        <th ng-repeat="(name,_) in summaries" ng-bind="name"></th>
+        <th>Time <a ng-click="loadQueues($scope.queues)">Reload</a></th>
+        <th ng-repeat="q in summaries" ng-bind="q.shortName"></th>
     </tr>
     <tr>
-	<td ng-bind="timeStamp"></td>
-        <td ng-repeat="queue in summaries" ng-class="queue.latency_20|summaryColor">{{queue.total_count}}<br>{{queue.latency_20 | timeCalc}}</td>
+        <td>count</td>
+        <td ng-repeat="queue in summaries" ng-class="queue.latency|summaryColor">{{queue.totalCount}}</td>
+    </tr>
+    <tr>
+        <td>age</td>
+        <td ng-repeat="queue in summaries" ng-class="queue.latency|summaryColor">{{queue.latency | timeCalc}}</td>
     </tr>
 </table>
 </div>
@@ -33,32 +37,33 @@
         <select ng-init="getFilterList()" id=specialFilter ng-model="filterListSelect" ng-options="filter.name for filter in filterList" ng-change="changeRefresh()">
             <option value="">None</option>
         </select>
-	<span ng-repeat="parameter in filterListSelect.parameters">
-		<label for=filterOpt>{{ parameter.name }}</label><input id=filterOpt ng-model="parameter.value" ng-change="changeRefresh()">
-	</span>
+    	<span ng-repeat="parameter in filterListSelect.parameters">
+    		<label for=filterOpt>{{ parameter.name }}</label><input id=filterOpt ng-model="parameter.value" ng-change="changeRefresh()">
+    	</span>
         <label for=timeout>Timeout:</label><input id=timeout size=2 value="3" ng-model="refreshTime" ng-change="changeRefresh()">
         <span ng-show="gettingFeedback">Loading</span>
+
     </div>
 <table ng-init="loadFeedback()">
     <tr>
-        <th class="ticketColumnId">Ticket</th>
-        <th class="ticketColumnAge">Age</th>
-        <th class="ticketColumnScore">Score</th>
-        <th class="ticketColumnAccount">Account</th>
-        <th class="ticketColumnSubject">Subject</th>
-        <th class="ticketColumnTeam">Team</th>
-        <th class="ticketColumnStatus">Status</th>
-        <th class="ticketColumnPlatforms">Platforms</th>
+        <th ng-click="predicate = 'ticket_link'; reverse=!reverse" class="ticketColumnId">Ticket</th>
+        <th ng-click="predicate = sortAge; reverse=!reverse" class="ticketColumnAge">Age</th>
+        <th ng-click="predicate = scoreSort; reverse=!reverse" class="ticketColumnScore">Score</th>
+        <th ng-click="predicate = 'account'; reverse=!reverse" class="ticketColumnAccount">Account</th>
+        <th ng-click="predicate = 'subject'; reverse=!reverse" class="ticketColumnSubject">Subject</th>
+        <th ng-click="predicate = 'team'; reverse=!reverse" class="ticketColumnTeam">Team</th>
+        <th ng-click="predicate = 'status_'; reverse=!reverse" class="ticketColumnStatus">Status</th>
+        <th ng-click="predicate = 'platforms'; reverse=!reverse" class="ticketColumnPlatforms">Platforms</th>
     </tr>
-    <tr ng-repeat="feedback in feedbacks">
-        <td ng-bind-html-unsafe="feedback.ticket_link"></td>
-        <td ng-bind="feedback.age"></td>
-        <td ng-bind="feedback.score"></td>
-        <td ng-bind-html-unsafe="feedback.account_link"></td>
-        <td ng-bind="feedback.subject"></td>
-        <td ng-bind="feedback.team"></td>
-        <td ng-bind-html-unsafe="feedback.status_"></td>
-        <td ng-bind-html-unsafe="feedback.platforms_"></td>
+    <tr ng-repeat="t in feedbacks |orderBy:predicate:reverse">
+        <td  ng-bind-html-unsafe="t.ticket_link"></td>
+        <td  ng-bind="t.age"></td>
+        <td ng-bind="t.score"></td>
+        <td ng-bind-html-unsafe="t.account_link"></td>
+        <td ng-bind="t.subject"></td>
+        <td ng-bind="t.team"></td>
+        <td ng-bind-html-unsafe="t.status_"></td>
+        <td ng-bind-html-unsafe="t.platforms_"></td>
     </tr>
 </table>
 </div>
