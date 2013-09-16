@@ -133,7 +133,8 @@ function processTest($q,$profile) {
     //queue as ticket
     foreach ($q as $t){
         $t->score = getScore($t,$profile);
-        //$t->subject = substr($t->subject, 0, 80);
+	//problems with unicode strings?
+        $t->subject = substr($t->subject, 0, 100);
         $t->account_name = substr($t->account_name, 0,40);
         //if($t->oldScore != $t->score)
             $out[] = $t;
@@ -185,11 +186,11 @@ function findMultiTicketAccounts($tickets,$min_count=4) {
 }
 
 //not sure if there's demand for this on the windows side
-function goAway($queue,$type='OPSMGR'){
+function goAway($queue,$type='/^((?!OPSMGR).)*$/'){
 	if($type == "") return $queue;
 	$out = array();
 	foreach($queue as $ticket){
-		if(stristr($ticket->subject,$type)===FALSE)
+		if(@preg_match($type,$ticket->subject))
 			$out[] = $ticket;
 	}
 	return $out;
@@ -226,7 +227,7 @@ $fil = '[
         },{
                 "name":"Go Away",
                 "fn":"goAway",
-                "parameters":[{"name":"subject","value":"OPSMGR"}]
+                "parameters":[{"name":"subject","value":"/^((?!OPSMGR).)*$/"}]
         },{
                 "name":"Accounting",
                 "fn":"accountFind",
