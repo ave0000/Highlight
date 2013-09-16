@@ -6,7 +6,7 @@ body {
 th {
     background: #a8a8a8;
     font-weight: bold;
-    padding: 2px;
+    padding: 0 0.5em;
     border-bottom: 1px solid #afafaf;
 }
 
@@ -52,7 +52,8 @@ a:hover {
 .statTable td {
 	text-align: right;
 	border-right: 1px solid black;
-	padding:0.5em;
+	border-top: 0;
+	padding: 0.25em;
 }	
 
 .green {
