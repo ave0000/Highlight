@@ -47,7 +47,7 @@ function Dynamic($scope, $http, $timeout) {
                     "attributes": {
                         "number":"number", 
                         "account":"account.name",
-                        "account_id":"account.id", //needed for link
+                        "account_id":"account.number", //needed for link
                         "age":"age",
                         "status":"status.name",
                         "statusColor":"status.color",
