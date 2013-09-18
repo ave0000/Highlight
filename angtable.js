@@ -30,7 +30,7 @@ app.filter('summaryColor',function(){
 );
 
 function Summary($scope, $http, $timeout) {
-    $scope.refreshTime = 120;
+    $scope.refreshTime = 60;
     $scope.summaries = {};
 
     $scope.loadQueue = function(queue) {
