@@ -1,27 +1,30 @@
 <?php
 
 function saveCachedSummary($data,$name='cache'){
-	$name = 'summary'.$name;
-        $redis = new Redis();
-        $redis->pconnect('127.0.0.1', 6379);
-        //$data = json_decode($data);
-        $data = serialize($data);
-        $redis->set($name, $data);
-        $redis->expire($name, 15);
+    $redis = new Redis();
+    $redis->pconnect('127.0.0.1', 6379);
+    $data = serialize($data);
+    $redis->set($name, $data);
+    $redis->expire($name, 15);
 }
 
 function getCachedSummary($profile) {
-	$profile = 'summary'.$profile;
     $redis = new Redis();
     $redis->pconnect('127.0.0.1', 6379);
-        $boop = $redis->get($profile);
-        return unserialize($boop);
+    $boop = $redis->get($profile);
+    return unserialize($boop);
 }
 
-
+//get just the summary info for a profile based on latency
 function getSummary($profile,$latency) {
-	if( ($hasCache = getCachedSummary($profile) ) !== false)
+	$latstr = "latency_"; //ability to take string OR bare number
+	if(strpos($latency,$latstr)===false)
+		$latency = $latstr.$latency;
+
+	$cacheProfile = "summary".$profile.$latency;
+	if(( $hasCache = getCachedSummary($cacheProfile) ) !== false)
 		return $hasCache;
+
 	$slick = 'http://oneview.rackspace.com/slick.php';
 	$url = $slick . '?fmt=json&latency='.$latency.'.&profile=' . urlencode($profile);
 	
@@ -32,7 +35,7 @@ function getSummary($profile,$latency) {
 	$out->totalCount = $contents->total_count;
 	$out->latency = $contents->{$latency};
 
-	saveCachedSummary($out,$profile);
+	saveCachedSummary($out,$cacheProfile);
 	return $out;
 }
 
@@ -51,6 +54,7 @@ function getSummaryList() {
     return $out;
 }
 
+//based on https://wiki.rackspace.corp/Enterprise/tvdisplay
 //why can't they all just be "All"?
 function figureOutLatency($name) {
 	//assume table is sorted by priority,
@@ -64,7 +68,6 @@ function figureOutLatency($name) {
 		'All'=>20
 	);
 	foreach($latencies as $find=>$total){
-	//	echo "checking $name for $find if found giving $total\n";
 		if(strpos($name,$find)!==false)
 			return $total;
 	}
