@@ -5,6 +5,7 @@ var app = angular.module('myApp', []);
 
 app.filter('timeCalc', function() {
         return function(secs) {
+            if(secs == undefined) return "?";
             var minutes;
             var hours = parseInt(parseInt(secs) / 3600);
 
@@ -38,7 +39,7 @@ function Summary($scope, $http, $timeout) {
         //$scope.loading=true;
         var httpRequest = $http({
             method: 'GET',
-            url: 'summary.php?summary='+queue.profile+'&latency=latency_'+queue.latencyCount
+            url: 'summary.php?summary='+queue.profile+'&latency='+queue.latencyCount
         }).success(function(data, status) {
             if(data.profile)
                 angular.extend($scope.summaries[data.profile],data)
