@@ -89,3 +89,8 @@ a:hover {
 .ticketColumnPlatforms{
     width:6em;
 }
+
+.onWatchIcon a {
+   background:url('../images/eye-3-16.png') no-repeat left center;
+   padding-left:20px;
+} 
