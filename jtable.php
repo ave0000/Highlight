@@ -129,6 +129,7 @@ function getSummaries($profiles,$date='') {
 
 /* Filters and processing */
 function processTest($q,$profile) {
+    if(!is_array($q) || count($q)==0) return $q;
     require_once('score/score.php');
     //queue as ticket
     foreach ($q as $t){
@@ -136,7 +137,7 @@ function processTest($q,$profile) {
 	//problems with unicode strings?
         $t->subject = substr($t->subject, 0, 100);
         $t->account_name = substr($t->account_name, 0,40);
-        //if($t->oldScore != $t->score)
+        if($t->oldScore != $t->score)
             $out[] = $t;
     }
     return $out;
@@ -157,11 +158,12 @@ function findAgedTickets($queue,$hours=4) {
 
 
 //given a queue, return a queue of tickets with a certain 'status'
-function findStatus($queue,$status="Feedback Received") {
+function findStatus($q,$status="Feedback Received") {
+    if($status == "" || !is_array($q)) return $q;
     $getStatuses = function($t)use($status) {
         return $t->status == $status;
     };
-    return array_filter($queue,$getStatuses);
+    return array_filter($q,$getStatuses);
 }
 
 //given a queue, return a queue with accounts with at least 'min_count' tickets
@@ -187,8 +189,7 @@ function findMultiTicketAccounts($tickets,$min_count=4) {
 
 //not sure if there's demand for this on the windows side
 function goAway($queue,$type='/^((?!OPSMGR).)*$/'){
-	if($type == "") return $queue;
-	$out = array();
+	if($type == "" || !is_array($q)) return $queue;
 	foreach($queue as $ticket){
 		if(@preg_match($type,$ticket->subject))
 			$out[] = $ticket;
@@ -210,6 +211,16 @@ function accountFind($queue,$value) {
         return $out;
 }
 
+function severityFilter($q,$type="Emergency") {
+    if($type == "" || !is_array($q)) return $q;
+    //$type = explode('|',$type);
+    foreach($q as $t){
+        if(stristr($t->sev, $type) !== false)
+            $out[] = $t;
+    }
+    return $out;
+}
+
 //describe the available filters, and their parameters
 $fil = '[
         {
@@ -225,13 +236,17 @@ $fil = '[
                 "fn":"findAgedTickets",
                 "parameters":[{"name":"hours","value":4}]
         },{
-                "name":"Go Away",
+                "name":"Subject regex",
                 "fn":"goAway",
                 "parameters":[{"name":"subject","value":"/^((?!OPSMGR).)*$/"}]
         },{
                 "name":"Accounting",
                 "fn":"accountFind",
                 "parameters":[{"name":"account","value":"AON"}]
+        },{
+                "name":"Severity",
+                "fn":"severityFilter",
+                "parameters":[{"name":"Severity","value":"Emergency"}]
 	}
 ]';
 $filters = json_decode($fil);
