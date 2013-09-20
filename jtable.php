@@ -3,12 +3,6 @@
 
 //store data for later retrieval
 //coupled with getCachedProfile
-/*
-function saveCache($data,$name='cache') {
-    $filename = 'cache/'.$name.'.json';
-    @file_put_contents($filename,$data);
-}
-*/
 function saveCache($data,$name='cache'){
 	$redis = new Redis();
 	$redis->pconnect('127.0.0.1', 6379);
@@ -17,26 +11,6 @@ function saveCache($data,$name='cache'){
 	$redis->set($name, $data);
 	$redis->expire($name, 30);
 }
-
-/*
-function getCachedProfile($profile,$age=60){
-    $cacheFile = 'cache/'.$profile.'.json';
-    if(!file_exists('cache/'))
-        return false;
-
-    if(!file_exists($cacheFile))
-        return false;
-
-    $mtime = filemtime($cacheFile);
-    $fileage = time() - $mtime;
-    if($fileage > 60 ) {
-        return false;
-    }
-    $data = file_get_contents($cacheFile);
-    
-    return json_decode($data);
-}
-*/
 
 function getCachedProfile($profile) {
     $redis = new Redis();
@@ -47,24 +21,22 @@ function getCachedProfile($profile) {
 
 function getProfileData($profile) {
     $hasCache = getCachedProfile($profile);
-    if($hasCache !== false) {
+    if($hasCache !== false)
         return $hasCache;
-    }
 
     $slick = 'http://oneview.rackspace.com/slick.php';
     $url = $slick . "?fmt=json&latency=latency_1&profile=" . urlencode($profile);
     $contents = file_get_contents($url);
     $data = json_decode($contents);
+
     saveCache($data,$profile);
     return $data;
 }
 
 function getProfileList(){
-
     $hasCache = getCachedProfile('profileList');
     if($hasCache !== false) 
         return $hasCache;
-
 
     //ick ...
     include('profile_list.inc');
@@ -137,126 +109,19 @@ function processTest($q,$profile) {
 	//problems with unicode strings?
         $t->subject = substr($t->subject, 0, 100);
         $t->account_name = substr($t->account_name, 0,40);
-        if($t->oldScore != $t->score)
+        //if($t->oldScore != $t->score)
             $out[] = $t;
     }
     return $out;
 }
-
-//given a queue, find the tickets that are over 'hours' old
-function findAgedTickets($queue,$hours=4) {
-    $out = array();
-    $min_seconds = $hours * 3600;
-
-    foreach($queue as $ticket) {
-        if($ticket->age_seconds >= $min_seconds) {
-            $out[] = $ticket;
-        }
-    }
-    return $out;
-}
-
-
-//given a queue, return a queue of tickets with a certain 'status'
-function findStatus($q,$status="Feedback Received") {
-    if($status == "" || !is_array($q)) return $q;
-    $getStatuses = function($t)use($status) {
-        return $t->status == $status;
-    };
-    return array_filter($q,$getStatuses);
-}
-
-//given a queue, return a queue with accounts with at least 'min_count' tickets
-function findMultiTicketAccounts($tickets,$min_count=4) {
-    $out = array();
-
-    while($tickets) {
-        $test = array(array_pop($tickets));
-        $account = $test[0]->account;
-
-        for($i=0;$i<count($tickets);$i++) {
-            if($tickets[$i]->account == $account) {
-                $test[] = $tickets[$i];
-                unset($tickets[$i]);
-            }
-        }
-        if(count($test)>=$min_count)
-            $out=array_merge($out,$test);
-    }
-
-    return $out;
-}
-
-//not sure if there's demand for this on the windows side
-function goAway($queue,$type='/^((?!OPSMGR).)*$/'){
-	if($type == "" || !is_array($q)) return $queue;
-	foreach($queue as $ticket){
-		if(@preg_match($type,$ticket->subject))
-			$out[] = $ticket;
-	}
-	return $out;
-}
-
-function accountFind($queue,$value) {
-	if($value == "") return $queue;
-
-    foreach($queue as $ticket){
-        if(stristr($ticket->account_link,$value)!==FALSE)
-        $out[] = $ticket;
-    }
-	if(count($out) < 1) {
-		$foo->subject = "No results for $value";
-		$out[] = $foo;
-	}
-        return $out;
-}
-
-function severityFilter($q,$type="Emergency") {
-    if($type == "" || !is_array($q)) return $q;
-    //$type = explode('|',$type);
-    foreach($q as $t){
-        if(stristr($t->sev, $type) !== false)
-            $out[] = $t;
-    }
-    return $out;
-}
-
-//describe the available filters, and their parameters
-$fil = '[
-        {
-                "name":"Feedback Received",
-                "fn":"findStatus",
-                "parameters": [{"name":"Status","value":"Feedback Received"}]
-        },{
-                "name":"Multi-Account",
-                "fn":"findMultiTicketAccounts",
-                "parameters":[{"name":"Min tickets","value":4}]
-        },{
-                "name":"Fine Wines (Aged)",
-                "fn":"findAgedTickets",
-                "parameters":[{"name":"hours","value":4}]
-        },{
-                "name":"Subject regex",
-                "fn":"goAway",
-                "parameters":[{"name":"subject","value":"/^((?!OPSMGR).)*$/"}]
-        },{
-                "name":"Accounting",
-                "fn":"accountFind",
-                "parameters":[{"name":"account","value":"AON"}]
-        },{
-                "name":"Severity",
-                "fn":"severityFilter",
-                "parameters":[{"name":"Severity","value":"Emergency"}]
-	}
-]';
-$filters = json_decode($fil);
 
 if(isset($_REQUEST['showProfiles'])) {
     echo json_encode(getProfileListShort());
 }
 
 if(isset($_REQUEST['showFilters'])){
-    echo json_encode($filters);
+    require_once('filters.php');
+    echo $filters;
 }
 
 if(isset($_REQUEST['queue'])) {
@@ -274,6 +139,8 @@ if(isset($_REQUEST['queue'])) {
     $queueData = processTest($queueData,$selectedProfile);
 
     if(isset($_REQUEST['filter'])) {
+        require_once('filters.php');
+        $filters = json_decode($filters);
         $filName = $_REQUEST['filter'];
         //do filter
     	foreach($filters as $f){

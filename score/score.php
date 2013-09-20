@@ -82,18 +82,8 @@ function getScore($t,$profile='null'){
 function getScoreModifier($ticket,$profile){
 	//a possible strategy would be to build a cacheable function
 	$modifier = 1;
+	$mods = getScoreModifierRules($profile);
 
-	//look up profile
-	if(!is_array($qs) || !isset($qs[$profile]) || !isset($qs[$profile]['modifier']))
-		return $modifier;
-	$mods = $qs[$profile]['modifier'];
-	if(!is_array($mods))
-		$mods = array($mods);
-
-	//remove empties
-	$mods = array_filter($mods);
-
-	//if something's wrong, bail out
 	if(!@count($mods))
 		return $modifier;
 
@@ -104,5 +94,24 @@ function getScoreModifier($ticket,$profile){
                     $modifier *= $mod['index'];
 
 	return $modifier;
+}
+function getScoreModifierRules($profile) {
+	require_once('../profile_list.inc');
+	//look up profile
+	if(!is_array($qs) || !isset($qs[$profile]))
+		return array();
+	if(!isset($qs[$profile]['modifier']))
+		return array();
+	$mods = $qs[$profile]['modifier'];
+
+	if(!is_array($mods))
+		$mods = array($mods);
+
+	//remove empties
+	return array_filter($mods);
+}
+
+if(isset($_REQUEST['scoreModifiers'])) {
+	echo json_encode(getScoreModifierRules($_REQUEST['scoreModifiers']));
 }
 ?>

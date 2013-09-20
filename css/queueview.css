@@ -93,4 +93,56 @@ a:hover {
 .onWatchIcon a {
    background:url('../images/eye-3-16.png') no-repeat left center;
    padding-left:20px;
+}
+
+.os-linux {background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAEJGlDQ…DzdxQugLZagVyA8482MNvnuBjw9l0vNONfLwa+6j1H+j/gxmCDCAAu5wAAAABJRU5ErkJggg==)!important;}
+.os-windows {background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAWuElEQ…vqUhGZVNU9QFVEuiLyUJom7S2bN71hFevN9eZ6c/3DXv8P2PaNnlUzIMwAAAAASUVORK5CYII=)!important;}
+
+
+
+input {
+font-size: 14px;
+border: 1px solid #777;
+box-shadow: inset 0 1px 2px rgba(0,0,0,0.2),0 1px 1px 0 rgba(255,255,255,0.3);
+border-radius: 4px;
+-webkit-background-clip: padding-box;
 } 
+
+/* http://cssarrowplease.com/ */
+.arrow_box {
+	position: relative;
+	background: #88b7d5;
+	border: 3px solid #c2e1f5;
+}
+.arrow_box:after, .arrow_box:before {
+	top: 100%;
+	border: solid transparent;
+	content: " ";
+	height: 0;
+	width: 0;
+	position: absolute;
+	pointer-events: none;
+}
+
+.arrow_box:after {
+	border-color: rgba(136, 183, 213, 0);
+	border-top-color: #88b7d5;
+	border-width: 10px;
+	left: 50%;
+	margin-left: -10px;
+}
+.arrow_box:before {
+	border-color: rgba(194, 225, 245, 0);
+	border-top-color: #c2e1f5;
+	border-width: 14px;
+	left: 50%;
+	margin-left: -14px;
+}
+
+.loading {
+    transition: opacity 1s ease-in-out;
+}
+.hide{
+    opacity: 0;
+}
+

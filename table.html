@@ -40,21 +40,37 @@
     	<span ng-repeat="parameter in filterListSelect.parameters">
     		<label for=filterOpt>{{ parameter.name }}</label><input id=filterOpt ng-model="parameter.value" ng-change="changeRefresh()">
     	</span>
-        <label for=search>Search:</label><input id=search ng-model=filterSearch>
+        <label for=search>Search:</label><input id=search ng-model=filterSearch placeholder=Filter>
         <label for=timeout>Timeout:</label><input id=timeout size=2 value="3" ng-model="refreshTime" ng-change="changeRefresh()">
-        <span ng-show="gettingFeedback">Loading</span>
+        <span ng-class="{hide:!gettingFeedback}" class=loading>Loading</span>
 
     </div>
 <table ng-init="loadFeedback()">
     <tr>
-        <th ng-click="predicate = 'ticket_link'; reverse=!reverse" class="ticketColumnId">Ticket</th>
-        <th ng-click="predicate = sortAge; reverse=!reverse" class="ticketColumnAge">Age</th>
-        <th ng-click="predicate = scoreSort; reverse=!reverse" class="ticketColumnScore">Score</th>
-        <th ng-click="predicate = 'account'; reverse=!reverse" class="ticketColumnAccount">Account</th>
-        <th ng-click="predicate = 'subject'; reverse=!reverse" class="ticketColumnSubject">Subject</th>
-        <th ng-click="predicate = 'team'; reverse=!reverse" class="ticketColumnTeam">Team</th>
-        <th ng-click="predicate = 'status_'; reverse=!reverse" class="ticketColumnStatus">Status</th>
-        <th ng-click="predicate = 'platforms'; reverse=!reverse" class="ticketColumnPlatforms">Platforms</th>
+        <th ng-click="predicate = 'ticket_link'; reverse=!reverse" 
+            ng-class="{arrow_box: predicate=='ticket_link'}" 
+            class="ticketColumnId">Ticket</th>
+        <th ng-click="predicate = sortAge; reverse=!reverse"
+            ng-class="{arrow_box: predicate==sortAge}" 
+            class="ticketColumnAge">Age</th>
+        <th ng-click="predicate = scoreSort; reverse=!reverse" 
+            ng-class="{arrow_box: predicate==scoreSort}"
+            class="ticketColumnScore">Score</th>
+        <th ng-click="predicate = 'account'; reverse=!reverse" 
+            ng-class="{arrow_box: predicate=='account'}"
+            class="ticketColumnAccount">Account</th>
+        <th ng-click="predicate = 'subject'; reverse=!reverse"
+            ng-class="{arrow_box: predicate=='subject'}"
+            class="ticketColumnSubject">Subject</th>
+        <th ng-click="predicate = 'team'; reverse=!reverse"
+            ng-class="{arrow_box: predicate=='team'}"
+            class="ticketColumnTeam">Team</th>
+        <th ng-click="predicate = 'status_'; reverse=!reverse"
+            ng-class="{arrow_box: predicate=='status_'}"
+            class="ticketColumnStatus">Status</th>
+        <th ng-click="predicate = 'platforms'; reverse=!reverse"
+            ng-class="{arrow_box: predicate=='platforms'}"
+            class="ticketColumnPlatforms">Platforms</th>
     </tr>
     <tr ng-repeat="t in feedbacks |filter:filterSearch |orderBy:predicate:reverse">
         <td  ng-bind-html-unsafe="t.ticket_link"></td>
