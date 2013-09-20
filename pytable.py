@@ -46,6 +46,7 @@ def showProfiles():
 
 def main():
     entf_lin = getProfileData('Enterprise F1000 (Linux)')
+    print entf_lin
 
 
 if __name__ == '__main__':
