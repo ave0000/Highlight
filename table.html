@@ -40,6 +40,7 @@
     	<span ng-repeat="parameter in filterListSelect.parameters">
     		<label for=filterOpt>{{ parameter.name }}</label><input id=filterOpt ng-model="parameter.value" ng-change="changeRefresh()">
     	</span>
+        <label for=search>Search:</label><input id=search ng-model=filterSearch>
         <label for=timeout>Timeout:</label><input id=timeout size=2 value="3" ng-model="refreshTime" ng-change="changeRefresh()">
         <span ng-show="gettingFeedback">Loading</span>
 
@@ -55,11 +56,11 @@
         <th ng-click="predicate = 'status_'; reverse=!reverse" class="ticketColumnStatus">Status</th>
         <th ng-click="predicate = 'platforms'; reverse=!reverse" class="ticketColumnPlatforms">Platforms</th>
     </tr>
-    <tr ng-repeat="t in feedbacks |orderBy:predicate:reverse">
+    <tr ng-repeat="t in feedbacks |filter:filterSearch |orderBy:predicate:reverse">
         <td  ng-bind-html-unsafe="t.ticket_link"></td>
         <td  ng-bind="t.age"></td>
         <td ng-bind="t.score"></td>
-        <td ng-bind-html-unsafe="t.account_link"></td>
+        <td ng-bind-html-unsafe="t.account_link" ng-class="{ onWatchIcon: t.OnWatch==1}"></td>
         <td ng-bind="t.subject"></td>
         <td ng-bind="t.team"></td>
         <td ng-bind-html-unsafe="t.status_"></td>
