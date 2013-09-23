@@ -30,6 +30,13 @@ app.filter('summaryColor',function(){
     }
 );
 
+app.filter('noSpaces',function(){
+	return function(s){
+		return s.replace(/ /g,'');
+	}
+    }
+);
+
 
 function Summary($scope, $http, $timeout) {
     $scope.refreshTime = 60;
@@ -122,6 +129,7 @@ function Dynamic($scope, $http, $timeout) {
 
     };
 
-    $scope.sortAge = function(a) {return parseInt(a.age_seconds);};
-    $scope.sortScore = function(a) {return parseInt(a.score);};
+    $scope.sortAge = function(t) {return parseInt(t.age_seconds);};
+    $scope.sortScore = function(t) {return parseInt( -1 * t.score);};
+    $scope.sortPlatform = function(t) {return t.platform;};
 }
