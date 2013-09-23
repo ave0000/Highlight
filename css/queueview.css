@@ -1,5 +1,5 @@
 body {
-    font-size:0.7em ;
+    font-size:0.875em ;
     font-family:"Free Sans",Helvetica,sans-serif;
     margin:0;
 }
@@ -109,14 +109,18 @@ a:hover {
 }
 
 .onWatchIcon a {
-   background:url('../images/eye-3-16.png') no-repeat left center;
+   background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA5klEQVQ4je3QMUpDYRAE4O89QrB8RZAgkkotgmWwylHSeABFwdLW0iKITQS9gDewCAF7ETyBnaKghTZK1iKrPGJuoAM/PzPM7uwu/yjmhWAT2+ijk/I9rnFRcLewQVBhiCkesYvP5Es4zx/2C17qqSvBOOgHy8FbcBb0gkZwFHwEa+kZB+3v4mZwFXSTD7LBIHhOrQwegr3k3axplijRyHHruMR6jU/TK73lDw86wSTYCto5wXGOXwaHucJGeibB6vwRWzgxO84TDvCeyRVGmVhhp5h5fiMPdxrcBK/5blPrLSz64/gCMDxflvwHZToAAAAASUVORK5CYII=) no-repeat left center;
    padding-left:20px;
 }
 
-.os-linux {background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAEJGlDQ…DzdxQugLZagVyA8482MNvnuBjw9l0vNONfLwa+6j1H+j/gxmCDCAAu5wAAAABJRU5ErkJggg==)!important;}
-.os-windows {background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAWuElEQ…vqUhGZVNU9QFVEuiLyUJom7S2bN71hFevN9eZ6c/3DXv8P2PaNnlUzIMwAAAAASUVORK5CYII=)!important;}
-
-
+.os-linux {background-image:url(data:image/gif;base64,R0lGODlhEAAWAPQfAAQEBBUUFS8vLxkcI2NEFFBPT21ranRhR0M8NJp5U5huGt6kJ/rUGv/ONP/mGKiPa/CyUOSsY//GavvCSrmJGJGQjq6sqrSmlv/QjufSreLb0+3k2fj49u/s6NHPywAAACH5BAEKAB8ALAAAAAAQABYAAAXB4CeOhVEVY5oKVVsJqioYSFEMaCwaVmBVAYBOlLgcHpeCcKiAYBYLxFKnaFgZhGnsAIFmDADtCFDZZDKcnvgjEHg68M5GCRu1DZx8vtML1NluenodBQEDA4B4HYIcfEEBHzgWGhuLexseAwGQAQUWGxqUG6AaLwKQDwkFHqShGhkJAggCGBkYBG6juhIRDw9OGBgRAYpxEhASEg3IyQsXgh0QVg0MDFYTExEVFxcVBgvVDA7VDuUUKQTi5SnVOg4jIQA7);}
+.os-windows {background-image: url(data:image/gif;base64,R0lGODlhEAAWAPQAAPQ4EfpgI+90WmyqM3rIMW+iSfSyFPySK+iWI4jPOP7IFP/SLoq0bOqhWvHLXZLVVidmxERouDOJ2HCv5l2h36ivm+C0krXNm9/Rpom656zL6fTm0dbk8/Lx7d3Zz////yH5BAEAAB8ALAAAAwAQABAAAAWR4Cd+G2Zh3aiO2HEEgJCuY+PCgeeN3dzdMMFlcMFgHhjRBghoMAaERIJwEVluAIClMJAmBjOL2CIIDKNTxkiTmVAyngpUShVx3hQJhONhoBkzdxl5EBgNGBeJSSITjXoRDQgGC5QOdhJujwgICpQKixqYhBWSnQsKOx8aGhwdd6QGpgapNBulpw4zNCQOvRa6IQA7);
+}
+.os-windows,.os-linux{
+	width:16px;height:22px;
+	color:rgba(0,0,0,0);
+	display:inline-block;
+}
 
 input {
 	font-size: 14px;
@@ -159,10 +163,21 @@ input {
 }
 
 .loading {
-    opacity: 100%;
+    opacity: 1;
     transition: opacity 1s ease-in-out;
 }
-.hide{
-    opacity: 0;
-}
+.hide{opacity: 0;}
+
+/*statuses*/
+.FeedbackReceived {background: #00FF88;}
+.New {background: #33FF33;}
+.Closedwithfeedback {background: #FFFFCC;}
+.InProgress {background: #99FF99;}
+.AlertReceived {background: #00F53D;}
+.Unsolved {background: #99FF99;}
+.NoFeedback {background: #99FF00;}
+
+
+
+
 
