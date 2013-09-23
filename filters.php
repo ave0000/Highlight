@@ -45,12 +45,12 @@ function findAgedTickets($queue,$hours=4) {
 
 
 //given a queue, return a queue of tickets with a certain 'status'
-function findStatus($q,$status="Feedback Received") {
-    if($status == "" || !is_array($q)) return $q;
-    $getStatuses = function($t)use($status) {
-        return $t->status == $status;
-    };
-    return array_filter($q,$getStatuses);
+function findStatus($queue,$status="Feedback Received") {
+    $out = array();
+    foreach($queue as $ticket)
+    	if($ticket->status == $status)
+		$out[] = $ticket;
+    return $out;
 }
 
 //given a queue, return a queue with accounts with at least 'min_count' tickets
