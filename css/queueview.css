@@ -140,6 +140,7 @@ border-radius: 4px;
 }
 
 .loading {
+    opacity: 100%;
     transition: opacity 1s ease-in-out;
 }
 .hide{
