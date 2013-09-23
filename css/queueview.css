@@ -1,13 +1,11 @@
 body {
-    font:8pt helvetica;
+    font-size:0.7em ;
+    font-family:"Free Sans",Helvetica,sans-serif;
     margin:0;
 }
 
 th {
     background: #a8a8a8;
-    font-weight: bold;
-    padding: 0 0.5em;
-    border-bottom: 1px solid #afafaf;
 }
 
 tr {
@@ -23,20 +21,17 @@ tr:hover {
 table {
     border-spacing: 0;
     width:100%;
-    /*margin-bottom:20px;*/
 }
 
 td {
-    border-top:1px solid;
+    border-bottom:1px solid;
     border-color: #afafaf;
-    margin:0;padding:0;
 }
 
 td img {width:16px;}
 
 a {
     text-decoration:none;
-    display:block;
 }
 a:hover {
     text-decoration:underline;
@@ -50,10 +45,14 @@ a:hover {
 	height: 18px;
 }
 .statTable td {
+	border:0;
 	text-align: right;
 	border-right: 1px solid black;
-	border-top: 0;
 	padding: 0.25em;
+}
+.statTable th {
+    border-bottom: 1px solid #afafaf;
+
 }	
 
 .green {
@@ -71,8 +70,30 @@ a:hover {
     background-color:#FA3939;
 }
 
+
+.ticketTable th {
+}
+
+.ticketTable th a {
+	padding: 0.25em;
+	display: block;
+	border: 2px solid rgba(0,0,0,0);
+}
+.ticketTable td{
+    height:1.5em;
+}
+
 .ticketColumnId {
-    width:8em;
+    width:7em;
+}
+.ticketColumnAge{
+    width:4em;
+}
+.ticketColumnScore{
+    width:4.5em;
+}
+.ticketColumnAccount{
+    width:15em;
 }
 .ticketColumnStatus{
     width:13em;
@@ -80,14 +101,11 @@ a:hover {
 .ticketColumnTeam{
     width:6em;
 }
-.ticketColumnScore{
-    width:4.5em;
-}
-.ticketColumnAge{
-    width:6em;
-}
 .ticketColumnPlatforms{
     width:6em;
+}
+.ticketTable{
+	table-layout: fixed;
 }
 
 .onWatchIcon a {
@@ -101,18 +119,19 @@ a:hover {
 
 
 input {
-font-size: 14px;
-border: 1px solid #777;
-box-shadow: inset 0 1px 2px rgba(0,0,0,0.2),0 1px 1px 0 rgba(255,255,255,0.3);
-border-radius: 4px;
--webkit-background-clip: padding-box;
+	font-size: 14px;
+	border: 1px solid #777;
+	box-shadow: inset 0 1px 2px rgba(0,0,0,0.2),0 1px 1px 0 rgba(255,255,255,0.3);
+	border-radius: 4px;
+	-webkit-background-clip: padding-box;
 } 
 
 /* http://cssarrowplease.com/ */
 .arrow_box {
 	position: relative;
-	background: #88b7d5;
-	border: 3px solid #c2e1f5;
+	background: #505050;
+	color: white;
+	border: 2px solid  rgba(196, 0, 34, 255) !important;
 }
 .arrow_box:after, .arrow_box:before {
 	top: 100%;
@@ -125,18 +144,18 @@ border-radius: 4px;
 }
 
 .arrow_box:after {
-	border-color: rgba(136, 183, 213, 0);
-	border-top-color: #88b7d5;
+	border-color: rgba(66, 66, 66, 0);
+	border-top-color: #505050;
+	border-width: 7px;
+	left: 50%;
+	margin-left: -7px;
+}
+.arrow_box:before {
+	border-color: rgba(196, 0, 34, 0);
+	border-top-color: #C40022;
 	border-width: 10px;
 	left: 50%;
 	margin-left: -10px;
-}
-.arrow_box:before {
-	border-color: rgba(194, 225, 245, 0);
-	border-top-color: #c2e1f5;
-	border-width: 14px;
-	left: 50%;
-	margin-left: -14px;
 }
 
 .loading {
