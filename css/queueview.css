@@ -38,6 +38,7 @@ a:hover {
 }
 
 .statTable {
+	font-size: 0.8em;
 	table-layout: fixed;
 }
 
