@@ -57,7 +57,7 @@
     <tr>
         <th><a ng-click="predicate = 'ticket_link'; reverse=!reverse" 
             ng-class="{arrow_box: predicate=='ticket_link'}" 
-            >Ticket</a></th>
+            >Tickets {{showingTickets.length}}</a></th>
         <th><a ng-click="predicate = sortAge; reverse=!reverse"
             ng-class="{arrow_box: predicate==sortAge}" 
             >Age</a></th>
@@ -80,7 +80,7 @@
             ng-class="{arrow_box: predicate==sortPlatform}"
             >Platforms</a></th>
     </tr>
-    <tr ng-repeat="t in feedbacks |filter:filterSearch |orderBy:predicate:reverse">
+    <tr ng-repeat="t in (showingTickets = (feedbacks |filter:filterSearch |orderBy:predicate:reverse))">
         <td><a target="_blank" href="https://core.rackspace.com/ticket/{{t.ticket}}">{{t.ticket}}</a></td>
         <td ng-bind="t.age"></td>
         <td ng-bind="t.score"></td>
