@@ -1,41 +1,40 @@
 "use strict";
-
 var app = angular.module('myApp', []);
 
-
 app.filter('timeCalc', function() {
-        return function(secs) {
-            if(secs == undefined) return "?";
-            var minutes;
-            var hours = parseInt(parseInt(secs) / 3600);
+    return function(secs) {
+        if(secs == undefined) return "?";
+        var minutes;
+        var hours = parseInt(parseInt(secs) / 3600);
 
-            secs -= (hours * 3600);
-            minutes = parseInt(secs / 60);
+        secs -= (hours * 3600);
+        minutes = parseInt(secs / 60);
 
-            return hours + ':' + (minutes < 10 ? "0" : "") +  minutes;
-        }
+        return hours + ':' + (minutes < 10 ? "0" : "") +  minutes;
     }
-);
+});
+
 app.filter('summaryColor',function(){
-        return function(secs) {
-            var red = 21600;
-            var yellow = 10800;
-            var color = 'green';
-            if (secs >= red)
-                color='red';
-            else if (secs >= yellow)
-                color='yellow';
-            return color;
-        }
+    return function(secs) {
+        var red = 21600;
+        var yellow = 10800;
+        var color = 'green';
+
+        if(!secs || !(secs=parseInt(secs))) return color;
+        if (secs >= red)
+            color='red';
+        else if (secs >= yellow)
+            color='yellow';
+        return color;
     }
-);
+});
 
 app.filter('noSpaces',function(){
 	return function(s){
-		return s.replace(/ /g,'');
+        if(!s || !s.replace) return s;
+		else return s.replace(/ /g,'');
 	}
-    }
-);
+});
 
 
 function Summary($scope, $http, $timeout) {
@@ -49,12 +48,16 @@ function Summary($scope, $http, $timeout) {
             method: 'GET',
             url: 'summary.php?summary='+queue.profile+'&latency='+queue.latencyCount
         }).success(function(data, status) {
+            var retryIn = $scope.refreshTime*1000;
             if(data.profile)
-                angular.extend($scope.summaries[data.profile],data)
-            else
+                angular.extend($scope.summaries[data.profile],data);
+            else if(data == '"try again soon"') retryIn = 500;
+            else{
                 console.log('fail: '+data);
+                retryIn = 500;
+            }
             //$scope.loading = false;
-            $scope.timeOutHolder = $timeout(function () {$scope.loadQueue(queue)}, $scope.refreshTime*1000);
+            $scope.timeOutHolder = $timeout(function () {$scope.loadQueue(queue)}, retryIn);
         }).error(function(data,status) {console.log(queue.profile+' httpfail: '+data+status);});
     };
     $scope.loadQueues = function(data){
@@ -77,6 +80,13 @@ function Dynamic($scope, $http, $timeout) {
     $scope.predicate = 'score';
     $scope.reverse = true;
     $scope.queueList = [];
+    $scope.ticketUrl = function(t) {
+        if(t.iscloud == "1") {
+            var ticket = t.ticket.replace('ZEN_','');
+            return 'https://rackspacecloud.zendesk.com/tickets/'+ticket;
+        }
+        else return 'https://core.rackspace.com/ticket/'+t.ticket;
+    }
     $scope.getQueueList = function() {
         var httpRequest = $http({
             method: 'GET',
@@ -111,25 +121,29 @@ function Dynamic($scope, $http, $timeout) {
             options = options+'='+$scope.queueListSelect;
         if($scope.filterListSelect != undefined) {
             options = options+'&filter='+$scope.filterListSelect.name;
-	    // TODO: if filterListSelect option is different than filterList option then ...
-	    if($scope.filterListSelect.parameters != undefined){
-		    options = options+'&filterOpt='+$scope.filterListSelect.parameters[0].value;
-	    }
+            // TODO: if filterListSelect option is different than filterList option then ...
+            if($scope.filterListSelect.parameters != undefined){
+                options = options+'&filterOpt='+$scope.filterListSelect.parameters[0].value;
+            }
         }
         $scope.gettingFeedback = true;
         var httpRequest = $http({
             method: 'GET',
             url: 'jtable.php?'+options,
         }).success(function(data, status) {
-            if(!data) data = [{"subject":"None"}];
-            $scope.feedbacks = data;
-            $scope.gettingFeedback = false;
-            $scope.timeOutHolder = $timeout($scope.loadFeedback, $scope.refreshTime*1000);
+            var retryIn = $scope.refreshTime*1000;
+            if(data == '"try again soon"') retryIn = 500;
+            else if(!data || !(data instanceof Array))
+                data = [{"subject":"None"}];
+            else{
+                $scope.feedbacks = data;
+                $scope.gettingFeedback = false;
+            }
+            $scope.timeOutHolder = $timeout($scope.loadFeedback, retryIn);
         });
-
     };
 
     $scope.sortAge = function(t) {return parseInt(t.age_seconds);};
-    $scope.sortScore = function(t) {return parseInt( -1 * t.score);};
+    $scope.sortScore = function(t) {return parseInt(t.score);};
     $scope.sortPlatform = function(t) {return t.platform;};
 }
