@@ -8,11 +8,11 @@ $filters = '[
         },{
                 "name":"Multi-Account",
                 "fn":"findMultiTicketAccounts",
-                "parameters":[{"name":"Min tickets","value":4}]
+                "parameters":[{"name":"Min tickets","value":4,"type":"number"}]
         },{
                 "name":"Fine Wines (Aged)",
                 "fn":"findAgedTickets",
-                "parameters":[{"name":"hours","value":4}]
+                "parameters":[{"name":"hours","value":4,"type":"number"}]
         },{
                 "name":"Subject regex",
                 "fn":"goAway",
@@ -24,7 +24,7 @@ $filters = '[
         },{
                 "name":"Severity",
                 "fn":"severityFilter",
-                "parameters":[{"name":"Severity","value":"Emergency"}]
+                "parameters":[{"name":"Severity","value":"Emergency","type":"multiselect","values":["Emergency","Urgent","Standard"]}]
 	}
 ]';
 
@@ -32,6 +32,7 @@ $filters = '[
 
 //given a queue, find the tickets that are over 'hours' old
 function findAgedTickets($queue,$hours=4) {
+    if(!is_numeric($hours) || !is_array($queue)) return $queue;
     $out = array();
     $min_seconds = $hours * 3600;
 
@@ -46,6 +47,7 @@ function findAgedTickets($queue,$hours=4) {
 
 //given a queue, return a queue of tickets with a certain 'status'
 function findStatus($queue,$status="Feedback Received") {
+    if($value == "" || !is_array($queue)) return $queue;
     $out = array();
     foreach($queue as $ticket)
     	if($ticket->status == $status)
@@ -54,17 +56,18 @@ function findStatus($queue,$status="Feedback Received") {
 }
 
 //given a queue, return a queue with accounts with at least 'min_count' tickets
-function findMultiTicketAccounts($tickets,$min_count=4) {
+function findMultiTicketAccounts($queue,$min_count=4) {
+    if(!is_numeric($min_count) || !is_array($queue)) return $queue;
     $out = array();
 
-    while($tickets) {
-        $test = array(array_pop($tickets));
+    while($queue) {
+        $test = array(array_pop($queue));
         $account = $test[0]->account;
 
-        for($i=0;$i<count($tickets);$i++) {
-            if($tickets[$i]->account == $account) {
-                $test[] = $tickets[$i];
-                unset($tickets[$i]);
+        for($i=0;$i<count($queue);$i++) {
+            if($queue[$i]->account == $account) {
+                $test[] = $queue[$i];
+                unset($queue[$i]);
             }
         }
         if(count($test)>=$min_count)
@@ -85,7 +88,7 @@ function goAway($q,$type='/^((?!OPSMGR).)*$/'){
 }
 
 function accountFind($queue,$value) {
-    if($value == "") return $queue;
+    if($value == "" || !is_array($queue)) return $queue;
 
     foreach($queue as $ticket)
         if(stristr($ticket->account_link,$value)!==FALSE)

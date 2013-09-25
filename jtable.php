@@ -1,8 +1,6 @@
 <?php
 
-
-//store data for later retrieval
-//coupled with getCachedProfile
+//No sense duplicating efforts ... (irony)
 function saveCache($data,$name='cache'){
 	$redis = new Redis();
 	$redis->pconnect('127.0.0.1', 6379);
@@ -16,14 +14,20 @@ function getCachedProfile($profile) {
     $redis = new Redis();
     $redis->pconnect('127.0.0.1', 6379);
 	$boop = $redis->get($profile);
+    if($profile != 'profileList' && $boop === false) {
+        $redis->rpush('wantNewQueue',$profile);
+        return "try again soon";
+    }
 	return unserialize($boop);
 }
 
 function getProfileData($profile) {
     $hasCache = getCachedProfile($profile);
-    if($hasCache !== false)
+    if(isset($hasCache->queue))
+        return $hasCache->queue;
+    else
         return $hasCache;
-
+/*
     $slick = 'http://oneview.rackspace.com/slick.php';
     $url = $slick . "?fmt=json&latency=latency_1&profile=" . urlencode($profile);
     $contents = file_get_contents($url);
@@ -31,8 +35,10 @@ function getProfileData($profile) {
 
     saveCache($data,$profile);
     return $data;
+    */
 }
 
+//a list of profiles
 function getProfileList(){
     $hasCache = getCachedProfile('profileList');
     if($hasCache !== false) 
@@ -62,6 +68,7 @@ function getProfileList(){
     return $out;
 }
 
+//scrunch the profile list names into an associative array
 function getProfileListShort() {
     $trims = array(
         'Enterprise '=>'',
@@ -80,7 +87,7 @@ function getProfileListShort() {
     return $profiles;
 }
 
-//Get data
+//Get data for several queues
 function getQueueData($profiles) {
     $data = array();
     foreach($profiles as $profile => $name) {
@@ -89,17 +96,11 @@ function getQueueData($profiles) {
     return $data;
 }
 
-function getSummaries($profiles,$date='') {
-    $data = getQueueData($profiles);
-    $summary->timeStamp = time();
-    foreach($data as $profile => $object) {
-        $summary->summaries[$profile] = $object->summary;
-    }
-    return $summary;
-}
-
-
-/* Filters and processing */
+// do some postprocessing on the queue
+// this is potentially a place to 
+// confirm fields are there
+// sanity check field data
+// make shortened versions of some fields
 function processTest($q,$profile) {
     if(!is_array($q) || count($q)==0) return $q;
     require_once('score/score.php');
@@ -124,6 +125,7 @@ if(isset($_REQUEST['showFilters'])){
     echo $filters;
 }
 
+/* Process options and finalize output below this point (eg: Driver) */
 if(isset($_REQUEST['queue'])) {
     //create an 'identifyProfile' fn
     $reqQ = $_REQUEST['queue'];
@@ -135,7 +137,8 @@ if(isset($_REQUEST['queue'])) {
     }else{
     	$selectedProfile = $profiles['Enterprise All'];
     }
-    $queueData = getProfileData($selectedProfile)->queue;
+    $queueData = getProfileData($selectedProfile);
+    if($queueData == null) echo "queueData";
     $queueData = processTest($queueData,$selectedProfile);
 
     if(isset($_REQUEST['filter'])) {
