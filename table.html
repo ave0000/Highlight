@@ -12,9 +12,10 @@
 <body>
   <div ng-app="myApp">
 <div ng-controller="Summary" ng-init="loadData()">
+<a ng-show="hideSummary" ng-click="hideSummary = !hideSummary" alt="Hide summary cards" style="width:100%;background:#a8a8a8;">Show Summaries</a>
 <table class="statTable" ng-show="!hideSummary">
     <tr>
-        <th><a ng-click="hideSummary = !hideSummary" alt="Hide summary cards">X</a></th>
+        <th><a ng-click="hideSummary = !hideSummary" alt="Hide summary cards">Hide</a></th>
         <th ng-repeat="q in summaries" ng-bind="q.shortName"></th>
     </tr>
     <tr>
@@ -58,7 +59,7 @@
     <tr>
         <th><span type=button value="^"  ng-click="hideFilters = !hideFilters;" ng-show="hideFilters">^</span>
             <a ng-click="predicate = 'ticket_link'; reverse=!reverse" 
-            ng-class="{arrow_box: predicate=='t!icket_link'}" 
+            ng-class="{arrow_box: predicate=='ticket_link'}" 
             >Tickets {{showingTickets.length}}</a></th>
         <th><a ng-click="predicate = sortAge; reverse=!reverse"
             ng-class="{arrow_box: predicate==sortAge}" 
