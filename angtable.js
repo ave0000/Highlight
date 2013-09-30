@@ -143,7 +143,7 @@ function Dynamic($scope, $http, $timeout) {
     };
 
     $scope.sortAge = function(t) {return parseInt(t.age_seconds);};
-    $scope.sortScore = function(t) {return parseInt(t.score);};
+    $scope.sortScore = function(t) {return (t.score=='-')?9999999:parseInt(t.score);};
     $scope.sortPlatform = function(t) {return t.platform;};
     $scope.predicate = $scope.sortScore;
 }
