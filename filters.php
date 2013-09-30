@@ -2,7 +2,7 @@
 //describe the available filters, and their parameters
 $filters = '[
         {
-                "name":"Feedback Received",
+                "name":"Status",
                 "fn":"findStatus",
                 "parameters": [{"name":"Status","value":"Feedback Received"}]
         },{
