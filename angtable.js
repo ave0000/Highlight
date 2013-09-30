@@ -147,3 +147,5 @@ function Dynamic($scope, $http, $timeout) {
     $scope.sortPlatform = function(t) {return t.platform;};
     $scope.predicate = $scope.sortScore;
 }
+var hideFilters = false;
+var hideSummary = false;
