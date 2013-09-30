@@ -12,15 +12,15 @@ $filters = '[
         },{
                 "name":"Fine Wines (Aged)",
                 "fn":"findAgedTickets",
-                "parameters":[{"name":"hours","value":4,"type":"number"}]
+                "parameters":[{"name":"Hours","value":4,"type":"number"}]
         },{
                 "name":"Subject regex",
                 "fn":"goAway",
-                "parameters":[{"name":"subject","value":"/^((?!OPSMGR).)*$/"}]
+                "parameters":[{"name":"Subject","value":"/^((?!OPSMGR).)*$/"}]
         },{
                 "name":"Accounting",
                 "fn":"accountFind",
-                "parameters":[{"name":"account","value":"AON"}]
+                "parameters":[{"name":"Account","value":"AON"}]
         },{
                 "name":"Severity",
                 "fn":"severityFilter",
@@ -47,11 +47,11 @@ function findAgedTickets($queue,$hours=4) {
 
 //given a queue, return a queue of tickets with a certain 'status'
 function findStatus($queue,$status="Feedback Received") {
-    if($value == "" || !is_array($queue)) return $queue;
+    if($status == "" || !is_array($queue)) return $queue;
     $out = array();
     foreach($queue as $ticket)
     	if($ticket->status == $status)
-		$out[] = $ticket;
+            $out[] = $ticket;
     return $out;
 }
 
