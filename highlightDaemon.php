@@ -27,7 +27,7 @@ function getCache($profile,$latency) {
 	$cacheProfile = "summary".$profile.$latency;
 
 	//hitting oneview is apparently very expensive
-	$slick = 'http://oneview.rackspace.com/newslick.php';
+	$slick = 'http://oneview.rackspace.com/slick.php';
 	$url = $slick . '?fmt=json&latency='.$latency.'.&profile=' . urlencode($profile);
 	
 	$contents = file_get_contents($url);
