@@ -28,8 +28,6 @@ td {
     border-color: #afafaf;
 }
 
-td img {width:16px;}
-
 a {
     text-decoration:none;
 }
@@ -128,6 +126,13 @@ input {
 	border-radius: 4px;
 	-webkit-background-clip: padding-box;
 } 
+#search {
+	width:6em;
+	transition: width .25s ease-in-out;
+}
+#search:hover, #search:focus {
+	width:16em;
+}
 
 /* http://cssarrowplease.com/ */
 .arrow_box {
@@ -175,7 +180,7 @@ input {
 .AlertReceived {background: #00F53D;}
 .Unsolved {background: #99FF99;}
 .NoFeedback {background: #99FF00;}
-
+.WaitingQC {background: #008000;} 
 
 
 

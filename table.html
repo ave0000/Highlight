@@ -12,9 +12,9 @@
 <body>
   <div ng-app="myApp">
 <div ng-controller="Summary" ng-init="loadData()">
-<table class="statTable">
+<table class="statTable" ng-show="!hideSummary">
     <tr>
-        <th>Time <a ng-click="loadQueues($scope.queues)">Reload</a></th>
+        <th><a ng-click="hideSummary = !hideSummary" alt="Hide summary cards">X</a></th>
         <th ng-repeat="q in summaries" ng-bind="q.shortName"></th>
     </tr>
     <tr>
@@ -22,13 +22,14 @@
         <td ng-repeat="queue in summaries" ng-class="queue.latency|summaryColor">{{queue.totalCount}}</td>
     </tr>
     <tr>
-        <td>age</td>
+        <td><a href="https://wiki.rackspace.corp/Enterprise/tvdisplay" alt="Average latency of tickets">Age</a></td>
         <td ng-repeat="queue in summaries" ng-class="queue.latency|summaryColor">{{queue.latency | timeCalc}}</td>
     </tr>
 </table>
 </div>
 <div ng-controller="Dynamic" id="queueTable">
-    <div>
+    <div ng-show="!hideFilters">
+        <!--<input type=button value="X" ng-click="hideFilters = !hideFilters;">-->
         <label for=queueList>Queue:</label>
         <select ng-init="getQueueList()" id=queueList ng-model="queueListSelect" ng-options="name for (name,shortname) in queueList" ng-change="changeRefresh()">
             <option value=''>Enterprise All</option>
@@ -40,8 +41,8 @@
     	<span ng-repeat="parameter in filterListSelect.parameters">
     		<label for=filterOpt>{{ parameter.name }}</label><input id=filterOpt ng-model="parameter.value" ng-change="changeRefresh()">
     	</span>
-        <label for=search>Search:</label><input id=search ng-model=filterSearch placeholder=Filter>
-        <label for=timeout>Timeout:</label><input id=timeout size=2 value="3" ng-model="refreshTime" ng-change="changeRefresh()">
+        <input id=search ng-model=filterSearch placeholder="Local Filter">
+        <label for=timeout>Refresh:</label><input id=timeout size=2 value="3" ng-model="refreshTime" ng-change="changeRefresh()">
         <span ng-class="{hide:!gettingFeedback}" class=loading>Loading</span>
 
     </div>
@@ -55,8 +56,9 @@
            <col class="ticketColumnStatus">
            <col class="ticketColumnPlatforms">
     <tr>
-        <th><a ng-click="predicate = 'ticket_link'; reverse=!reverse" 
-            ng-class="{arrow_box: predicate=='ticket_link'}" 
+        <th><span type=button value="^"  ng-click="hideFilters = !hideFilters;" ng-show="hideFilters">^</span>
+            <a ng-click="predicate = 'ticket_link'; reverse=!reverse" 
+            ng-class="{arrow_box: predicate=='t!icket_link'}" 
             >Tickets {{showingTickets.length}}</a></th>
         <th><a ng-click="predicate = sortAge; reverse=!reverse"
             ng-class="{arrow_box: predicate==sortAge}" 
@@ -85,7 +87,11 @@
             <a target="_blank" href="{{ticketUrl(t)}}">{{t.ticket}}</a></td>
         <td ng-bind="t.age"></td>
         <td ng-bind="t.score"></td>
-        <td ng-class="{ onWatchIcon: t.OnWatch==1}"><a ng-if="t.aname" href="https://core.rackspace.com/account/{{t.account}}">{{t.aname}}</a><em ng-if="!t.aname" ng-bind-html-unsafe="t.account_link"></em></td>
+        <td ng-class="{ onWatchIcon: t.OnWatch==1}">
+		<a ng-if="t.iscloud" href="https://us.cloudcontrol.rackspacecloud.com/customer/{{ t.account_link.replace('DDI ','') }}">{{t.account_link}}</a>
+		<a ng-if="t.aname" href="https://core.rackspace.com/account/{{t.account}}">{{t.aname}}</a>
+		<em ng-if="!t.aname && !t.iscloud " ng-bind-html-unsafe="t.account_link"></em>
+	</td>
         <td ng-bind="t.subject"></td>
         <td ng-bind="t.team"></td>
         <td ng-bind="t.status" ng-class="t.status | noSpaces"></td>
