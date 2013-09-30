@@ -77,7 +77,6 @@ function Summary($scope, $http, $timeout) {
 }
 
 function Dynamic($scope, $http, $timeout) {
-    $scope.predicate = 'score';
     $scope.reverse = true;
     $scope.queueList = [];
     $scope.ticketUrl = function(t) {
@@ -146,4 +145,5 @@ function Dynamic($scope, $http, $timeout) {
     $scope.sortAge = function(t) {return parseInt(t.age_seconds);};
     $scope.sortScore = function(t) {return parseInt(t.score);};
     $scope.sortPlatform = function(t) {return t.platform;};
+    $scope.predicate = $scope.sortScore;
 }
