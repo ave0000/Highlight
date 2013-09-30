@@ -14,7 +14,7 @@
 <div ng-controller="Summary" ng-init="loadData()">
 <table class="statTable">
     <tr>
-        <th>Time <a ng-click="loadQueues($scope.queues)">Reload</a></th>
+        <th>Time</th>
         <th ng-repeat="q in summaries" ng-bind="q.shortName"></th>
     </tr>
     <tr>
@@ -22,7 +22,7 @@
         <td ng-repeat="queue in summaries" ng-class="queue.latency|summaryColor">{{queue.totalCount}}</td>
     </tr>
     <tr>
-        <td>age</td>
+        <td><a href="https://wiki.rackspace.corp/Enterprise/tvdisplay" alt="Average latency of tickets">Age</a></td>
         <td ng-repeat="queue in summaries" ng-class="queue.latency|summaryColor">{{queue.latency | timeCalc}}</td>
     </tr>
 </table>
@@ -85,7 +85,11 @@
             <a target="_blank" href="{{ticketUrl(t)}}">{{t.ticket}}</a></td>
         <td ng-bind="t.age"></td>
         <td ng-bind="t.score"></td>
-        <td ng-class="{ onWatchIcon: t.OnWatch==1}"><a ng-if="t.aname" href="https://core.rackspace.com/account/{{t.account}}">{{t.aname}}</a><em ng-if="!t.aname" ng-bind-html-unsafe="t.account_link"></em></td>
+        <td ng-class="{ onWatchIcon: t.OnWatch==1}">
+		<a ng-if="t.iscloud" href="https://us.cloudcontrol.rackspacecloud.com/customer/{{ t.account_link.replace('DDI ','') }}">{{t.account_link}}</a>
+		<a ng-if="t.aname" href="https://core.rackspace.com/account/{{t.account}}">{{t.aname}}</a>
+		<em ng-if="!t.aname && !t.iscloud " ng-bind-html-unsafe="t.account_link"></em>
+	</td>
         <td ng-bind="t.subject"></td>
         <td ng-bind="t.team"></td>
         <td ng-bind="t.status" ng-class="t.status | noSpaces"></td>
