@@ -32,9 +32,9 @@
         <th class="ticketColumnPlatforms">OS</th>
     </tr>
     <tr ng-repeat="t in tickets">
-        <td><a href="https://core.rackspace.com/ticket/{{t.number}}">{{t.number}}</a></td>
+        <td><a target="_blank" href="https://core.rackspace.com/ticket/{{t.number}}">{{t.number}}</a></td>
         <td ng-bind="t.age"></td>
-        <td><a href="https://core.rackspace.com/account/{{t.account_id}}">{{t.account}}</a></td>
+        <td><a target="_blank" href="https://core.rackspace.com/account/{{t.account_id}}">{{t.account}}</a></td>
         <td ng-bind="t.subject"></td>
         <td ng-bind="t.team"></td>
         <td ng-class="t.status | noSpaces">{{t.status}}</td>
