@@ -10,7 +10,15 @@ function readCookie(name) {
     return null;
 }
 
+//var app = angular.module('myApp', []);
 var app = angular.module('myApp', []);
+
+app.filter('noSpaces',function(){
+    return function(s){
+        if(!s || !s.replace) return s;
+        else return s.replace(/ /g,'');
+    }
+});
 
 function Dynamic($scope, $http, $timeout) {
     $scope.tickets = [];
@@ -50,7 +58,7 @@ function Dynamic($scope, $http, $timeout) {
                         "account_id":"account.number", //needed for link
                         "age":"age",
                         "status":"status.name",
-                        "statusColor":"status.color",
+                        //"statusColor":"status.color",
                         "subject":"subject",
                         "team":"support_team.name",
                         //"assignee":"assignee.name",
