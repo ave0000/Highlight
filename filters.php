@@ -25,7 +25,11 @@ $filters = '[
                 "name":"Severity",
                 "fn":"severityFilter",
                 "parameters":[{"name":"Severity","value":"Emergency","type":"multiselect","values":["Emergency","Urgent","Standard"]}]
-	}
+    	},{
+                "name":"Chain",
+                "fn":"chainFilter",
+                "parameters":[{"name":"None","value":"uhm"}]
+    }
 ]';
 
 
@@ -109,5 +113,28 @@ function severityFilter($q,$type="Emergency") {
             $out[] = $t;
     }
     return $out;
+}
+
+function chainFilter($q,$none) {
+    /*Statuses: No Feedback, Feedback Received, Closed with Feedback
+Top Aged tickets (10): only qualified if the ticket is over 4 hours
+New Customer Initiated tickets: from category(?).
+*/
+
+        //$q = findAgedTickets($q,4);
+        $wines = findAgedTickets($q,4);
+
+        $feedbacks = findStatus($q);
+        $nofeedbacks = findStatus($q,"No Feedback");
+        $closeds = findStatus($q,"Closed with feedback");
+
+        $cust = array();
+        foreach($q as $t)
+                if(stristr($t->category, "customer_initiated") !== false)
+                    $cust[] = $t;
+
+        $out = array_merge($feedbacks,$nofeedbacks,$closeds,$cust,$wines);
+
+        return $out;
 }
 ?>
