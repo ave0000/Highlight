@@ -7,7 +7,6 @@ body {
 th {
     background: #a8a8a8;
 }
-
 tr {
     height: 28px;
     margin:0;padding:0;
@@ -17,23 +16,26 @@ tr:nth-child(even)      { background-color:#fff; }
 tr:hover {
     background-color: #afafaf;
 }
-
+td {
+    border-bottom:1px solid;
+    border-color: #afafaf;
+}
 table {
     border-spacing: 0;
     width:100%;
 }
 
-td {
-    border-bottom:1px solid;
-    border-color: #afafaf;
-}
+a {text-decoration:none;}
+a:hover {text-decoration:underline;}
 
-a {
-    text-decoration:none;
-}
-a:hover {
-    text-decoration:underline;
-}
+input {
+	font-size: 14px;
+	border: 1px solid #777;
+	box-shadow: inset 0 1px 2px rgba(0,0,0,0.2),0 1px 1px 0 rgba(255,255,255,0.3);
+	border-radius: 4px;
+	-webkit-background-clip: padding-box;
+} 
+
 
 .statTable {
 	font-size: 0.8em;
@@ -51,61 +53,63 @@ a:hover {
 }
 .statTable th {
     border-bottom: 1px solid #afafaf;
+}
 
-}	
-
-.green {
-    /*color: white;*/
+/*statuses*/
+.green,.standard {
     background-color:#91B386;
 }
-.yellow {
-    color:black;
+.yellow,.urgent {
     font-weight: bold;
     background-color:#F5E856;
 }
-.red {
-    color:black;
+.red,.emergency {
     font-weight: bold;
     background-color:#FA3939;
 }
 
+/*
+.standard {background-color: #468847;}
+.urgent {background-color: #f89406;}
+.emergency {background-color: #b94a48;}
+*/
 
-.ticketTable th {
+.standard, .emergency, .urgent, .status {
+	color:black;
+	width:100%;
+	font-size: 0.85em;
+	padding: 1px 2px 3px;
+	border-radius:4px;
 }
+
+.FeedbackReceived {background: #00FF88;}
+.New, .Open {background: #33FF33;}
+.Closedwithfeedback {background: #FFFFCC;}
+.InProgress {background: #99FF99;}
+.AlertReceived {background: #00F53D;}
+.Unsolved {background: #99FF99;}
+.NoFeedback {background: #99FF00;}
+.WaitingQC {background: #008000;} 
+
+
 
 .ticketTable th a {
 	padding: 0.25em;
 	display: block;
 	border: 2px solid rgba(0,0,0,0);
 }
-.ticketTable td{
-    height:1.5em;
-}
 
-.ticketColumnId {
-    width:7em;
-}
-.ticketColumnAge{
-    width:4em;
-}
-.ticketColumnScore{
-    width:4.5em;
-}
-.ticketColumnAccount{
-    width:15em;
-}
-.ticketColumnStatus{
-    width:13em;
-}
-.ticketColumnTeam{
-    width:6em;
-}
-.ticketColumnPlatforms{
-    width:3em;
-}
-.ticketTable{
-	table-layout: fixed;
-}
+.ticketTable td{height:1.5em;}
+
+.ticketColumnId {width:7em;}
+.ticketColumnAge{width:4em;}
+.ticketColumnScore{width:4.5em;}
+.ticketColumnAccount{width:15em;}
+.ticketColumnStatus{width:13em;}
+.ticketColumnTeam{width:6em;}
+.ticketColumnPlatforms{width:3em;}
+
+.ticketTable{table-layout: fixed;}
 
 .onWatchIcon a {
    background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA5klEQVQ4je3QMUpDYRAE4O89QrB8RZAgkkotgmWwylHSeABFwdLW0iKITQS9gDewCAF7ETyBnaKghTZK1iKrPGJuoAM/PzPM7uwu/yjmhWAT2+ijk/I9rnFRcLewQVBhiCkesYvP5Es4zx/2C17qqSvBOOgHy8FbcBb0gkZwFHwEa+kZB+3v4mZwFXSTD7LBIHhOrQwegr3k3axplijRyHHruMR6jU/TK73lDw86wSTYCto5wXGOXwaHucJGeibB6vwRWzgxO84TDvCeyRVGmVhhp5h5fiMPdxrcBK/5blPrLSz64/gCMDxflvwHZToAAAAASUVORK5CYII=) no-repeat left center;
@@ -119,13 +123,6 @@ a:hover {
 	display:inline-block;
 }
 
-input {
-	font-size: 14px;
-	border: 1px solid #777;
-	box-shadow: inset 0 1px 2px rgba(0,0,0,0.2),0 1px 1px 0 rgba(255,255,255,0.3);
-	border-radius: 4px;
-	-webkit-background-clip: padding-box;
-} 
 #search {
 	width:6em;
 	transition: width .25s ease-in-out;
@@ -171,17 +168,4 @@ input {
     transition: opacity 1s ease-in-out;
 }
 .hide{opacity: 0;}
-
-/*statuses*/
-.FeedbackReceived {background: #00FF88;}
-.New, .Open {background: #33FF33;}
-.Closedwithfeedback {background: #FFFFCC;}
-.InProgress {background: #99FF99;}
-.AlertReceived {background: #00F53D;}
-.Unsolved {background: #99FF99;}
-.NoFeedback {background: #99FF00;}
-.WaitingQC {background: #008000;} 
-
-
-
 
