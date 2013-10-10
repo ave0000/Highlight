@@ -27,24 +27,13 @@ function getProfileData($profile) {
         return $hasCache->queue;
     else
         return $hasCache;
-/*
-    $slick = 'http://oneview.rackspace.com/slick.php';
-    $url = $slick . "?fmt=json&latency=latency_1&profile=" . urlencode($profile);
-    $contents = file_get_contents($url);
-    $data = json_decode($contents);
-
-    saveCache($data,$profile);
-    return $data;
-    */
 }
 
 //a list of profiles
 function getProfileList(){
-    $hasCache = getCachedProfile('profileList');
-    if($hasCache !== false) 
+    if(false !== ($hasCache = getCachedProfile('profileList'))) 
         return $hasCache;
 
-    //ick ...
     include('profile_list.inc');
     $out = array();
     $profiles = array_keys($qs);
@@ -100,7 +89,7 @@ function getQueueData($profiles) {
 // this is potentially a place to 
 // confirm fields are there
 // sanity check field data
-// make shortened versions of some fields
+// make shortened versions of some fields,etc
 function processTest($q,$profile) {
     if(!is_array($q) || count($q)==0) return $q;
     require_once('score/score.php');
@@ -116,6 +105,30 @@ function processTest($q,$profile) {
     return $out;
 }
 
+function getUserPrefs($user,$field='') {
+    $redis = new Redis();
+    $redis->pconnect('127.0.0.1', 6379);
+    $key = 'prefs:'.$user;
+    $prefs = array();
+    if (is_array($field))
+        $prefs = $redis->hmget($key,$field);
+    elseif($redis->hexists($key,$field))
+        $prefs[$field] = $redis->hget($key,$field);
+    else
+        $prefs = $redis->hgetall($key);
+    return $prefs;
+}
+function setUserPrefs($user,$prefs) {
+    $hash = 'prefs:'.$user;
+    $redis = new Redis();
+    $redis->pconnect('127.0.0.1', 6379);
+    $redis->hmset($hash,(array)$prefs);
+    /*
+    foreach($prefs as $pref => $val) {
+        $redis->hset($hash,$pref,$val);
+    }*/
+}
+
 if(isset($_REQUEST['showProfiles'])) {
     echo json_encode(getProfileListShort());
 }
@@ -123,6 +136,22 @@ if(isset($_REQUEST['showProfiles'])) {
 if(isset($_REQUEST['showFilters'])){
     require_once('filters.php');
     echo $filters;
+}
+
+if(isset($_REQUEST['userPrefs'])){
+    $user = $_COOKIE['COOKIE_last_login'];
+    $prefs = getUserPrefs($user,$_REQUEST['userPrefs']);
+    $jsonPrefs = json_encode($prefs);
+    if($jsonPrefs !== false)
+        echo $jsonPrefs;
+}
+if(isset($_REQUEST['userPrefset']) && isset($_POST)){
+    //easy to fake :/
+    $user  = $_COOKIE['COOKIE_last_login'];
+    $postdata = file_get_contents("php://input");
+    $prefs = json_decode($postdata);
+    if($prefs !== false) setUserPrefs($user,$prefs);
+    else echo "error reading post, maybe not valid json?";
 }
 
 /* Process options and finalize output below this point (eg: Driver) */

@@ -4,18 +4,18 @@
 <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <title>Queue Highlights</title>
-    <script type='text/javascript' src="http://code.angularjs.org/1.1.5/angular.min.js"></script>
+    <script type='text/javascript' src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.0-rc.2/angular.min.js"></script>
     <script src="angtable.js"></script>
     <link rel="stylesheet" type="text/css" href="css/queueview.css">
 
 </head>
 <body>
   <div ng-app="myApp">
-<div ng-controller="Summary" ng-init="loadData()">
-<a ng-show="hideSummary" ng-click="hideSummary = !hideSummary" alt="Hide summary cards" style="width:100%;background:#a8a8a8;">Show Summaries</a>
-<table class="statTable" ng-show="!hideSummary">
+<div ng-controller="Summary">
+<a ng-show="hideSummary" ng-click="hideSummary = !hideSummary" alt="Hide summary cards" style="background:#a8a8a8;float:right;">Show Summaries</a>
+<table class="statTable" ng-if="!hideSummary">
     <tr>
-        <th><a ng-click="hideSummary = !hideSummary" alt="Hide summary cards">Hide</a></th>
+        <th><a ng-click="$parent.hideSummary = !hideSummary" alt="Hide summary cards">Hide</a></th>
         <th ng-repeat="q in summaries" ng-bind="q.shortName"></th>
     </tr>
     <tr>
@@ -32,22 +32,23 @@
     <div ng-show="!hideFilters">
         <!--<input type=button value="X" ng-click="hideFilters = !hideFilters;">-->
         <label for=queueList>Queue:</label>
-        <select ng-init="getQueueList()" id=queueList ng-model="queueListSelect" ng-options="name for (name,shortname) in queueList" ng-change="changeRefresh()">
+        <select ng-init="getQueueList()" id=queueList ng-model="queueListSelect" ng-options="name for (name,shortname) in queueList">
             <option value=''>Enterprise All</option>
         </select>
         <label for=specialFilter>Filters:</label>
-        <select ng-init="getFilterList()" id=specialFilter ng-model="filterListSelect" ng-options="filter.name for filter in filterList" ng-change="changeRefresh()">
+        <select ng-init="getFilterList()" id=specialFilter ng-model="filterListSelect" ng-options="filter.name for filter in filterList">
             <option value="">None</option>
         </select>
     	<span ng-repeat="parameter in filterListSelect.parameters">
     		<label for=filterOpt>{{ parameter.name }}</label><input id=filterOpt ng-model="parameter.value" ng-change="changeRefresh()">
     	</span>
         <input id=search ng-model=filterSearch placeholder="Local Filter">
-        <label for=timeout>Refresh:</label><input id=timeout size=2 value="3" ng-model="refreshTime" ng-change="changeRefresh()">
+        <label for=timeout>Refresh:</label><input id=timeout size=2 value="3" ng-model="queueRefreshTime">
+        <button ng-click="changeRefresh();flashScreen();">&#8623;</button>
         <span ng-class="{hide:!gettingFeedback}" class=loading>Loading</span>
 
     </div>
-<table ng-init="loadFeedback()" class=ticketTable>
+<table class=ticketTable>
            <col class="ticketColumnId">
            <col class="ticketColumnAge">
            <col class="ticketColumnScore">
@@ -57,15 +58,14 @@
            <col class="ticketColumnStatus">
            <col class="ticketColumnPlatforms">
     <tr>
-        <th><span type=button value="^"  ng-click="hideFilters = !hideFilters;" ng-show="hideFilters">^</span>
-            <a ng-click="predicate = 'ticket_link'; reverse=!reverse" 
+        <th><a ng-click="predicate = 'ticket_link'; reverse=!reverse" 
             ng-class="{arrow_box: predicate=='ticket_link'}" 
             >Tickets {{showingTickets.length}}</a></th>
-        <th><a ng-click="predicate = sortAge; reverse=!reverse"
-            ng-class="{arrow_box: predicate==sortAge}" 
+        <th><a ng-click="predicate = 'Age'; reverse=!reverse"
+            ng-class="{arrow_box: predicate=='Age'}" 
             >Age</a></th>
-        <th><a ng-click="predicate = sortScore; reverse=!reverse" 
-            ng-class="{arrow_box: predicate==sortScore}"
+        <th><a ng-click="predicate = 'Score'; reverse=!reverse" 
+            ng-class="{arrow_box: predicate=='Score'}"
             >Score</a></th>
         <th><a ng-click="predicate = 'aname'; reverse=!reverse" 
             ng-class="{arrow_box: predicate=='aname'}"
@@ -76,29 +76,27 @@
         <th><a ng-click="predicate = 'team'; reverse=!reverse"
             ng-class="{arrow_box: predicate=='team'}"
             >Team</a></th>
-        <th><a ng-click="predicate = 'status_'; reverse=!reverse"
-            ng-class="{arrow_box: predicate=='status_'}"
+        <th><a ng-click="predicate = 'status'; reverse=!reverse"
+            ng-class="{arrow_box: predicate=='status'}"
             >Status</a></th>
-        <th><a ng-click="predicate = sortPlatform; reverse=!reverse"
-            ng-class="{arrow_box: predicate==sortPlatform}"
+        <th><a ng-click="predicate = 'Platform'; reverse=!reverse"
+            ng-class="{arrow_box: predicate=='Platform'}"
             >OS</a></th>
     </tr>
-    <tr ng-repeat="t in (showingTickets = (feedbacks |filter:filterSearch |orderBy:predicate:reverse))">
-        <td>
-            <a target="_blank" href="{{ticketUrl(t)}}">{{t.ticket}}</a></td>
+    <tr ng-repeat="t in (showingTickets = (feedbacks |filter:filterSearch |orderBy:getOrder():reverse))">
+        <td><a target="_blank" href="{{t.ticketUrl}}" class="{{t.sev}}">{{t.ticket}}</a></td>
         <td ng-bind="t.age"></td>
         <td ng-bind="t.score"></td>
         <td ng-class="{ onWatchIcon: t.OnWatch==1}">
-		<a ng-if="t.iscloud" href="https://us.cloudcontrol.rackspacecloud.com/customer/{{ t.account_link.replace('DDI ','') }}">{{t.account_link}}</a>
-		<a ng-if="t.aname" href="https://core.rackspace.com/account/{{t.account}}">{{t.aname}}</a>
-		<em ng-if="!t.aname && !t.iscloud " ng-bind-html-unsafe="t.account_link"></em>
-	</td>
+            <a target="_blank" href="{{t.accountUrl}}">{{t.aname}}</a>
+        </td>
         <td ng-bind="t.subject"></td>
         <td ng-bind="t.team"></td>
-        <td ng-bind="t.status" ng-class="t.status | noSpaces"></td>
+        <td><span ng-bind="t.status" ng-class="t.status | noSpaces" class="status"></span></td>
         <td>
-		<span ng-if="t.platform == 'linux' || t.platform == 'both'" class="os-linux">L</span>
-		<span ng-if="t.platform == 'windows' || t.platform == 'both'" class="os-windows">W</span>  </td>
+            <span ng-if="t.platform == 'linux' || t.platform == 'both'" class="os-linux">L</span>
+            <span ng-if="t.platform == 'windows' || t.platform == 'both'" class="os-windows">W</span>
+        </td>
     </tr>
 </table>
 </div>
