@@ -1,17 +1,45 @@
 <?php
 if(!isset($argv)) exit("CLI only");
 
-function saveProfile($name,$data){
-    $redis = new Redis();
-    $redis->pconnect('127.0.0.1', 6379);
+
+
+function hashCache($redis,$obj) {
+	$fields = array(
+		"OnWatch",
+		"account",
+		"aname",
+		"fepoch",
+		"category",
+		"iscloud",
+		"platform",
+		"score",
+		"sev",
+		"status",
+		"subject",
+		"team",
+		"ticket",
+		);
+	//var_dump($obj);
+	foreach($obj as $ticket){
+		$store = array();
+		foreach($fields as $field) {
+			$store[$field] = $ticket->{$field};
+		}
+		$redis->hMSet('ticket:'.$ticket->ticket,$store);
+	}
+}
+
+function saveProfile($redis,$name,$data){
+    //$redis = new Redis();
+    //$redis->pconnect('127.0.0.1', 6379);
     $data = serialize($data);
     $redis->set($name, $data);
     $redis->expire($name, 60);
     $redis->publish('updateProfile'.$name,$name);
 }
-function saveSummary($name,$data){
-	$redis = new Redis();
-	$redis->pconnect('127.0.0.1', 6379);
+function saveSummary($redis,$name,$data){
+	//$redis = new Redis();
+	//$redis->pconnect('127.0.0.1', 6379);
 	//$data = json_decode($data);
 	$data = serialize($data);
 	$redis->set($name, $data);
@@ -19,7 +47,7 @@ function saveSummary($name,$data){
 	$redis->publish('update'.$name,$data);
 }
 
-function getCache($profile,$latency) {
+function getCache($redis,$profile,$latency) {
 	$latstr = "latency_"; //ability to take string OR bare number
 	if(strpos($latency,$latstr)===false)
 		$latency = $latstr.$latency;
@@ -39,8 +67,9 @@ function getCache($profile,$latency) {
 	$out->totalCount = $sum->total_count;
 	$out->latency = $sum->{$latency};
 
-	saveProfile($profile,$data);
-	saveSummary($cacheProfile,$out);
+	hashCache($redis,$data->queue);
+	saveProfile($redis,$profile,$data);
+	saveSummary($redis,$cacheProfile,$out);
 	return $out;
 }
 
@@ -51,18 +80,21 @@ making sure we're only doing one request at a time
 */
 ini_set('default_socket_timeout', -1);
 set_time_limit(0);
+//$address = '127.0.0.1';
+$address = '/tmp/redis.sock';
 
 $keepGoing = true;
 
 $redis = new Redis();
-$redis->pconnect('127.0.0.1',6379);
+$redis->pconnect($address);
 
 while($keepGoing) {
+	try{
 	//prioritize queue requests over summary requests
 	while(false !== ($entry = $redis->lPop('wantNewQueue'))){
 		if($redis->get($entry) === false){
 			//echo "queue requested: ".$entry;
-			getCache($entry,'latency_1');
+			getCache($redis,$entry,'latency_1');
 			//echo "--got\n";
 		}
 	}
@@ -75,11 +107,16 @@ while($keepGoing) {
 		$latency = strstr($profile,'latency');
 		$profile = strstr($profile,'latency',true);
 		//echo "getting '".$profile."' with ".$latency;
-		getCache($profile,$latency);
+		getCache($redis,$profile,$latency);
 		//echo "--got\n";
 		//sleep(1);
 	}
 	//echo $redis->llen('wantNewSummary')."\n";
+	}catch(Exception $e){
+		echo "Reconnecting\n";
+		$redis = new Redis();
+		$redis->pconnect($address);
+	}
 }
 
 ?>
