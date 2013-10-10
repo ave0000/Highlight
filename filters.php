@@ -92,7 +92,7 @@ function goAway($q,$type='/^((?!OPSMGR).)*$/'){
 }
 
 function accountFind($queue,$value) {
-    if($value == "" || !is_array($queue)) return $queue;
+    if(!is_array($queue)) return $queue;
 
     foreach($queue as $ticket)
         if(stristr($ticket->account_link,$value)!==FALSE)
@@ -105,8 +105,8 @@ function accountFind($queue,$value) {
     return $out;
 }
 
-function severityFilter($q,$type="Emergency") {
-    if($type == "" || !is_array($q)) return $q;
+function severityFilter($q,$type) {
+    if(!is_array($q)) return $q;
     //$type = explode('|',$type);
     foreach($q as $t){
         if(stristr($t->sev, $type) !== false)
@@ -120,21 +120,22 @@ function chainFilter($q,$none) {
 Top Aged tickets (10): only qualified if the ticket is over 4 hours
 New Customer Initiated tickets: from category(?).
 */
+    if(!is_array($q)) return $q;
+    $out = array();
 
-        //$q = findAgedTickets($q,4);
-        $wines = findAgedTickets($q,4);
+    $wines = findAgedTickets($q,4);
 
-        $feedbacks = findStatus($q);
-        $nofeedbacks = findStatus($q,"No Feedback");
-        $closeds = findStatus($q,"Closed with feedback");
+    $feedbacks = findStatus($q);
+    $nofeedbacks = findStatus($q,"No Feedback");
+    $closeds = findStatus($q,"Closed with feedback");
 
-        $cust = array();
-        foreach($q as $t)
-                if(stristr($t->category, "customer_initiated") !== false)
-                    $cust[] = $t;
+    $cust = array();
+    foreach($q as $t)
+            if(stristr($t->category, "customer_initiated") !== false)
+                $cust[] = $t;
 
-        $out = array_merge($feedbacks,$nofeedbacks,$closeds,$cust,$wines);
+    $out = array_merge($feedbacks,$nofeedbacks,$closeds,$cust,$wines);
 
-        return $out;
+    return $out;
 }
 ?>
