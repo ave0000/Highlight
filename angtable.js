@@ -167,7 +167,7 @@ function Dynamic($scope, $http, $timeout, pref) {
     $scope.getFilterList = function() {
         var httpRequest = $http({
             method: 'GET',
-            url: 'jtable.php?showFilters'
+            url: 'jtable.php?showFilters',
             cache: true,
         }).success(function(data, status) {
             $scope.filterList = data;
