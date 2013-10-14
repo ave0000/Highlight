@@ -20,13 +20,16 @@ function hashCache($redis,$obj) {
 		"ticket",
 		);
 	//var_dump($obj);
+	$ticketList = array();
 	foreach($obj as $ticket){
 		$store = array();
 		foreach($fields as $field) {
 			$store[$field] = $ticket->{$field};
 		}
 		$redis->hMSet('ticket:'.$ticket->ticket,$store);
+		$ticketList[] = $ticket->ticket;
 	}
+	return $ticketList;
 }
 
 function saveProfile($redis,$name,$data){
@@ -37,6 +40,19 @@ function saveProfile($redis,$name,$data){
     $redis->expire($name, 60);
     $redis->publish('updateProfile'.$name,$name);
 }
+
+function saveTicketList($redis,$name,$data){
+    //$redis = new Redis();
+    //$redis->pconnect('127.0.0.1', 6379);
+    //$data = serialize($data);
+    $name = 'ticketList:'.$name;
+    $redis->set($name, $data);
+    $redis->set($name.":timestamp",$data);
+    //$redis->expire($name, 60);
+    $data = json_encode($data);
+    $redis->publish($name,$data);
+}
+
 function saveSummary($redis,$name,$data){
 	//$redis = new Redis();
 	//$redis->pconnect('127.0.0.1', 6379);
@@ -67,7 +83,8 @@ function getCache($redis,$profile,$latency) {
 	$out->totalCount = $sum->total_count;
 	$out->latency = $sum->{$latency};
 
-	hashCache($redis,$data->queue);
+	$ticketList = hashCache($redis,$data->queue);
+	saveTicketList($redis,$profile,$ticketList);
 	saveProfile($redis,$profile,$data);
 	saveSummary($redis,$cacheProfile,$out);
 	return $out;
