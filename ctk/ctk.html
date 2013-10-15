@@ -14,16 +14,16 @@
 <div ng-controller="Dynamic">
 <span ng-bind="title">Queue Data</span>
 <label for=ticketType>Type:</label><select id=ticketType ng-model="statusType" ng-change="changeRefresh()">
-		<option value=4>Open</option>
-		<option value=8>Active</option>
+		<option value=4>Active</option>
+		<option value=8>Open</option>
 	</select>
-<label for=timeout>Timeout (sec):</label><input id=timeout size=2 value="3" ng-model="refreshTime" ng-change="changeRefresh()">
+<label for=timeout>Timeout (sec):</label><input id=timeout size=2 value="30" ng-model="refreshTime" ng-change="changeRefresh()">
 
 <span ng-show="loading">Loading</span>
 
 <table ng-init="loadData()">
     <tr>
-        <th class="ticketColumnId">Ticket</th>
+        <th class="ticketColumnId">Tickets {{showingTickets.length}}</th>
         <th class="ticketColumnAge">Age</th>
         <th class="ticketColumnAccount">Account</th>
         <th>subject</th>
@@ -31,14 +31,14 @@
         <th class="ticketColumnStatus">Status</th>
         <th class="ticketColumnPlatforms">OS</th>
     </tr>
-    <tr ng-repeat="t in tickets">
+    <tr ng-repeat="t in (showingTickets = (tickets))">
         <td><a target="_blank" href="https://core.rackspace.com/ticket/{{t.number}}">{{t.number}}</a></td>
         <td ng-bind="t.age"></td>
         <td><a target="_blank" href="https://core.rackspace.com/account/{{t.account_id}}">{{t.account}}</a></td>
         <td ng-bind="t.subject"></td>
         <td ng-bind="t.team"></td>
         <td ng-class="t.status | noSpaces">{{t.status}}</td>
-        <td >
+        <td>
         <span ng-if="t.linux" class="os-linux">L</span>
         <span ng-if="t.windows" class="os-windows">W</span>  </td>
 
@@ -48,7 +48,7 @@
 </div>
 </div>
 
-<div>Submit <a href="https://github.rackspace.com/aver4919/Highlight/issues">requests/issues</a> or <a href="mailto:avery.scott@rackspace.com?Subject=Highlight">Email me</a></div>
+<div>Submit <a target="_blank" href="https://github.rackspace.com/aver4919/Highlight/issues">requests/issues</a> or <a href="mailto:avery.scott@rackspace.com?Subject=Highlight">Email me</a></div>
 
 </body>
 </html>
