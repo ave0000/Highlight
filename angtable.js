@@ -154,9 +154,6 @@ function Dynamic($scope, $http, $timeout, pref) {
     $scope.$watch('queueListSelect + queueRefreshTime + filterListSelect', 
         function(){$scope.changeRefresh();} );
 
-    $scope.$watch('showingTickets', 
-        function(){     window.parent.document.title = $scope.showingTickets.length + ' - Highlight';} );
-
     $scope.getQueueList = function() {
         var httpRequest = $http({
             method: 'GET',
@@ -226,6 +223,7 @@ function Dynamic($scope, $http, $timeout, pref) {
                 $scope.processTickets(data);
                 //$scope.feedbacks = data;
                 $scope.gettingFeedback = false;
+
             }
             $scope.timeOutHolder = $timeout($scope.loadFeedback, retryIn);
         });
@@ -240,7 +238,12 @@ function Dynamic($scope, $http, $timeout, pref) {
         else return 0;
     };
 
-
+    $scope.ticketCount = function(asdf) {
+        if( !($scope.showingTickets instanceof Array) ) return 0;
+        var len = $scope.showingTickets.length;
+        window.parent.document.title = len + ' - Highlight';
+        return len;
+    };
 
     //some columns don't sort right
     //override them here
