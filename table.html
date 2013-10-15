@@ -60,7 +60,7 @@
     <tr>
         <th><a ng-click="predicate = 'Ticket'; reverse=!reverse" 
             ng-class="{arrow_box: predicate=='Ticket'}" 
-            >Tickets {{showingTickets.length}}</a></th>
+            >Tickets {{ticketCount()}}</a></th>
         <th><a ng-click="predicate = 'Age'; reverse=!reverse"
             ng-class="{arrow_box: predicate=='Age'}" 
             >Age</a></th>
