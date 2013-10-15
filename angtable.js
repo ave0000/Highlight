@@ -154,6 +154,9 @@ function Dynamic($scope, $http, $timeout, pref) {
     $scope.$watch('queueListSelect + queueRefreshTime + filterListSelect', 
         function(){$scope.changeRefresh();} );
 
+    $scope.$watch('showingTickets', 
+        function(){     window.parent.document.title = $scope.showingTickets.length + ' - Highlight';} );
+
     $scope.getQueueList = function() {
         var httpRequest = $http({
             method: 'GET',
@@ -231,6 +234,13 @@ function Dynamic($scope, $http, $timeout, pref) {
     $scope.sortAge = function(t) {return parseInt(t.age_seconds);};
     $scope.sortScore = function(t) {return (t.score=='-')?9999999:parseInt(t.score);};
     $scope.sortPlatform = function(t) {return t.platform;};
+    $scope.sortSev = function(t) {
+        if(t.sev == 'emergency') return 9000;
+        else if(t.sev == 'urgent') return 1000;
+        else return 0;
+    };
+
+
 
     //some columns don't sort right
     //override them here
@@ -241,6 +251,7 @@ function Dynamic($scope, $http, $timeout, pref) {
             case 'Score': return $scope.sortScore;
             case 'Age': return $scope.sortAge;
             case 'Platform': return $scope.sortPlatform;
+            case 'Ticket': return $scope.sortSev;
             default: return $scope.predicate;
         }
     }
