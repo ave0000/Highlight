@@ -131,6 +131,7 @@ while($keepGoing) {
 	//echo $redis->llen('wantNewSummary')."\n";
 	}catch(Exception $e){
 		echo "Reconnecting\n";
+		sleep(1);
 		$redis = new Redis();
 		$redis->pconnect($address);
 	}
