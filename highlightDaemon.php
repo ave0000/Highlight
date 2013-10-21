@@ -1,6 +1,6 @@
 <?php
 if(!isset($argv)) exit("CLI only");
-
+//test
 
 
 function hashCache($redis,$obj) {
