@@ -39,12 +39,13 @@ function getUserName($token){
     return $data->username;
 }
 
-$token = $_COOKIE['rackspace_admin_session'];
-/*
+if(isset($_COOKIE['rackspace_admin_session']))
+        $token = $_COOKIE['rackspace_admin_session'];
 if(isset($_REQUEST['token'])) {
     $token = $_REQUEST['token'];
 }
-*/
+
+if(!isset($token) ) exit();
 
 if(isset($_REQUEST['getUser'])){
     echo getUserName($token);
@@ -55,7 +56,6 @@ if(isset($_REQUEST['getUser'])){
     //probably should check token first
     echo query($token,$postdata);
 }
-
 
 ?>
 
