@@ -1,10 +1,9 @@
 <?php
 
-//No sense duplicating efforts ... (irony)
 function saveCache($data,$name='cache'){
 	$redis = new Redis();
 	$redis->pconnect('127.0.0.1', 6379);
-	//$data = json_decode($data);
+	//$data = json_encode($data);
 	$data = serialize($data);
 	$redis->set($name, $data);
 	$redis->expire($name, 30);
@@ -12,24 +11,23 @@ function saveCache($data,$name='cache'){
 
 function getCachedProfile($profile) {
     $redis = new Redis();
-    $redis->pconnect('127.0.0.1', 6379);
+    $redis->pconnect('127.0.0.1',6379);
 	$boop = $redis->get($profile);
-    if($profile != 'profileList' && $boop === false) {
+    if($profile == 'profileList') {
+      return unserialize($boop);  
+    }else if($profile != 'profileList' && ($boop === false || $boop == false)) {
         $redis->rpush('wantNewQueue',$profile);
         return "try again soon";
     }
-	return unserialize($boop);
+    return json_decode($boop);
 }
 
 function getProfileData($profile) {
     $hasCache = getCachedProfile($profile);
-    if(isset($hasCache->queue))
-        return $hasCache->queue;
-    else
-        return $hasCache;
+    return $hasCache->queue;
 }
 
-//a list of profiles
+//a list of profiles, minus the ones we don't want
 function getProfileList(){
     if(false !== ($hasCache = getCachedProfile('profileList'))) 
         return $hasCache;
@@ -49,9 +47,8 @@ function getProfileList(){
     			break;
     		}
     	}
-    	if(!$hasBad){
+    	if(!$hasBad)
     		$out[$q] = $q;
-    	}
     } 
     saveCache($out,'profileList');
     return $out;
@@ -64,7 +61,7 @@ function getProfileListShort() {
         //'Team'=>'T:',
         'Linux'=>'L',
         'Windows'=>'W',
-    	'Implementation'=>'imp',
+    	'Implementation'=>'Imp',
     	'Latin America'=>'LATAM'
     );
     $profiles = getProfileList();
@@ -74,6 +71,18 @@ function getProfileListShort() {
             $profiles[$q] = $name;
     }
     return $profiles;
+}
+
+function selectProfile($requested) {
+    $profiles = getProfileListShort();
+    $profile = $profiles['Enterprise All'];
+
+    if(in_array($requested,$profiles))
+        $profile = array_search($requested,$profiles);
+    else if(in_array($requested,$profiles))
+        $profile = $profiles[$reqQ];
+
+    return $profile;
 }
 
 //Get data for several queues
@@ -98,7 +107,8 @@ function processTest($q,$profile) {
         $t->score = getScore($t,$profile);
 	//problems with unicode strings?
         $t->subject = substr($t->subject, 0, 100);
-        $t->account_name = substr($t->account_name, 0,40);
+        if(!property_exists($t,'aname')) $t->aname = $t->account;
+        $t->aname = substr($t->aname, 0,40);
         //if($t->oldScore != $t->score)
             $out[] = $t;
     }
@@ -123,10 +133,6 @@ function setUserPrefs($user,$prefs) {
     $redis = new Redis();
     $redis->pconnect('127.0.0.1', 6379);
     $redis->hmset($hash,(array)$prefs);
-    /*
-    foreach($prefs as $pref => $val) {
-        $redis->hset($hash,$pref,$val);
-    }*/
 }
 
 if(isset($_REQUEST['showProfiles'])) {
@@ -156,19 +162,9 @@ if(isset($_REQUEST['userPrefset']) && isset($_POST)){
 
 /* Process options and finalize output below this point (eg: Driver) */
 if(isset($_REQUEST['queue'])) {
-    //create an 'identifyProfile' fn
-    $reqQ = $_REQUEST['queue'];
-    $profiles = getProfileListShort();
-    if(in_array($reqQ,$profiles)) {
-        $selectedProfile = array_search($reqQ,$profiles);
-    }else if(in_array($reqQ,$profiles)){
-        $selectedProfile = $profiles[$reqQ];
-    }else{
-    	$selectedProfile = $profiles['Enterprise All'];
-    }
-    $queueData = getProfileData($selectedProfile);
-    if($queueData == null) echo "queueData";
-    $queueData = processTest($queueData,$selectedProfile);
+    $selected = selectProfile($_REQUEST['queue']);
+    $queueData = getProfileData($selected);
+    $queueData = processTest($queueData,$selected);
 
     if(isset($_REQUEST['filter'])) {
         require_once('filters.php');
