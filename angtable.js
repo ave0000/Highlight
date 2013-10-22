@@ -198,6 +198,7 @@ function Dynamic($scope, $http, $timeout, pref) {
         function(){$scope.changeRefresh();} );
 
     $scope.getQueueList = function() {
+        $scope.queueList = '[{"Loading Options","Loading"}]';
         var httpRequest = $http({
             method: 'GET',
             url: 'jtable.php?showProfiles',
@@ -205,7 +206,6 @@ function Dynamic($scope, $http, $timeout, pref) {
         }).success(function(data, status) {
             $scope.queueList = data;
         });
-        $scope.queueList = '[{"Loading Options","Loading"}]';
     }
     $scope.getFilterList = function() {
         var httpRequest = $http({
@@ -221,18 +221,19 @@ function Dynamic($scope, $http, $timeout, pref) {
     $scope.changeRefresh = function() {
         //buffer modifications
         $timeout.cancel($scope.refreshTimeTimer);
-        $scope.refreshTimeTimer = $timeout($scope.loadFeedback,1000);
+        $scope.refreshTimeTimer = $timeout($scope.loadFeedback,300);
     }
 
     $scope.processTickets = function(data) {
         data.forEach(function(t) {
         if(t.iscloud == "1") {
+            if(!t.account_link) t.account_link = "";
             var ticket = t.ticket.replace('ZEN_','');
-            var account = t.account_link.replace('DDI ','');
+            var account = (''+t.account_link).replace('DDI ','');
             t.aname = t.account_link;
 
             t.ticketUrl='https://rackspacecloud.zendesk.com/tickets/'+ticket;
-            t.accountUrl='https://rackspacecloud.zendesk.com/tickets/'+account;
+            t.accountUrl='https://us.cloudcontrol.rackspacecloud.com/customer/'+account+'/servers';
         }else{
           t.ticketUrl='https://core.rackspace.com/ticket/'+t.ticket;
           t.accountUrl='https://core.rackspace.com/account/'+t.account;
