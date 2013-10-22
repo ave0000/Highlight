@@ -1,4 +1,7 @@
 "use strict";
+var serverHost = 'highlight.res.rackspace.com';
+var redisHost = serverHost+':3000/';
+
 var app = angular.module('myApp', []);
 
 app.filter('timeCalc', function() {
@@ -40,98 +43,139 @@ app.filter('noSpaces',function(){
 app.service('pref',function($http){
     var prefurl='jtable.php';
     var pref = this;//so i can call myself
+    this.cache = new Array();
+
     //set a single preference value
     this.save = function(key,val){
+        if(pref.cache[key] && pref.cache[key] == val) return true;
+
+        console.log('saving '+key+' as:"'+val+'"');
         //maybe these should be buffered into blocks...
-        //YES, they should be buffered.
-      var prefs = {last: Date.now()};
-      prefs[key] = val;
-      $http({
+        var prefs = {last: Date.now()};
+        prefs[key] = val;
+        $http({
             method: 'POST',
             url: prefurl+'?userPrefset',
             data: prefs,
         });
     }
-    //return a single preference value
+    //populate a single preference value once
     this.get = function(key,$scope) {
         return $http.get(prefurl+'?userPrefs='+key)
             .then(function (response) {
                 if(response.data && response.data[key])
-                        $scope[key] = response.data[key];
+                    pref.cache[key] = $scope[key] = response.data[key];
             });
     };
-    //load ALL preferences into the given scope
-    this.load = function($scope) {
-        $http.get(prefurl+'?userPrefs')
-        .then(function(response){
-            angular.extend($scope,response.data);
-        });
-    }
     //watch a variable in the given scope for changes
     this.watch = function(key,$scope) {
+        pref.get(key,$scope);
         $scope.$watch(key, function(newval, oldval) {
-            //only want to change if USER changed value, not code
-            //not sure how to fix
-            if (newval!=undefined && newval !== oldval) {
-                console.log('changing '+key+' to:"'+newval+'" from "'+oldval+'"');
+            if (newval!=undefined && newval !== oldval)
                 pref.save(key,newval);
-            }
         });
     }
 });
 
+
 function Summary($scope, $http, $timeout,pref) {
     $scope.hideSummary = false;
-    $scope.refreshTime = 60;
+    $scope.refreshTime = 30;
     $scope.summaries = {};
 
-    pref.get('hideSummary',$scope);
-    //$scope.hideSummary = 
+    //listen for published updates so that we can avoid unneeded refreshes
+    var jsonSocket;
+    function pubSocket() {
+        jsonSocket = new WebSocket("ws://"+redisHost);
+        jsonSocket.onopen = function() {
+            this.send(JSON.stringify(["PSUBSCRIBE", "updatesummary*"]));
+            console.log("WebSocket connected and subscribed to summary updates.");
+        };
+        jsonSocket.onmessage = function(message) {
+            var data = message.data;
+            //sanity check and then apply the message
+            try{var sub = JSON.parse(data);}
+            catch(e) {/*cool story*/}
+            if(sub && sub.profile)
+                $scope.gotQueue(sub);
+            else
+                console.log("JSON received:", data);
+        };
+        jsonSocket.onclose = function(a) {
+            console.log(a);
+            setTimeout(function(){pubSocket()},4000);
+        }   
+    }
+    pubSocket();
+
+    var requestSocket;
+    function reqSocket(data) {//polling, more or less.
+        requestSocket = new WebSocket("ws://"+redisHost);
+        requestSocket.onopen = function() {
+            data.forEach($scope.loadQueue);
+        };
+        requestSocket.onmessage = function(msg) {
+            var data = JSON.parse(msg.data)
+            if(data.profile)
+                $scope.gotQueue(data);
+        };
+        requestSocket.onclose = function(a) {
+            if($scope.hideSummary == true ) return true;
+            console.log(a);
+            setTimeout(function(){reqSocket(data)},4000);
+        }   
+    }
+    
+    $scope.gotQueue = function(queue) {
+        queue = angular.extend($scope.summaries[queue.profile],queue);
+        //if we're not in a digest/apply cycle, start one
+        if(!$scope.$$phase) $scope.$apply();
+        //schedule the next poll
+        $scope.loadQueue(queue);
+    }
+    $scope.loadQueue = function(queue) {
+        if(requestSocket.readyState != WebSocket.OPEN) return false;
+
+        var retryIn = $scope.refreshTime*1000;
+        var queueStr = 'summary'+queue.profile+'latency_'+queue.latencyCount;
+
+        if(!queue.timeStamp) {//first run won't be populated
+            requestSocket.send(JSON.stringify(["GET", queueStr]));
+        }else{
+            var age = Date.now() - queue.timeStamp;
+            if(age < retryIn) {
+                var diff = retryIn - age; //reschedule
+                //console.log(queue.profile+'too early for refresh: '+age+' trying again in '+diff);
+                $timeout.cancel(queue.timeout);
+                queue.timeout = $timeout(function () {$scope.loadQueue(queue)}, diff);
+            }else{
+                //console.log(queue.profile+' data is '+age/1000+' seconds old, requesting new');
+                requestSocket.send(JSON.stringify(["rpush","wantNewSummary",queueStr]))
+            }
+        }
+    };
+    //fetch the list of profiles to render
+    //instead, we could have a list of user selected profiles to watch
+    $scope.loadData = function() {
+        var httpRequest = $http.get('summary.php?summaryProfiles')
+        .success(function(data){
+            data.forEach(function(queue){//create cards
+                $scope.summaries[queue.profile] = queue;
+            });
+            reqSocket(data);//fire up the socket engine
+        });
+    };
 
     pref.watch('hideSummary',$scope);
     $scope.$watch('hideSummary', function(newval,oldval){
         if(newval == false && oldval== true)
             $scope.loadData();
-    } );
-
-    $scope.loadQueue = function(queue) {
-        if($scope.hideSummary == true ) return false;
-        var retryIn = $scope.refreshTime*1000;
-        var httpRequest = $http({
-            method: 'GET',
-            url: 'summary.php?summary='+queue.profile+'&latency='+queue.latencyCount
-        }).success(function(data, status) {
-            if(data.profile)
-                angular.extend($scope.summaries[data.profile],data);
-            else if(data == '"try again soon"') retryIn = 1000;
-            else{
-                console.log('Summary fail: '+data);
-                retryIn = 5000;
-            }
-            //console.log('next poll for '+queue.profile+' in '+retryIn);
-            $timeout(function () {$scope.loadQueue(queue)}, retryIn);
-        }).error(function(data,status) {
-            //console.log(queue.profile+' httpfail: '+data+status);
-            $timeout(function () {$scope.loadQueue(queue)}, retryIn);
-        });
-    };
-    $scope.loadQueues = function(data){
-        //pre-populate
-        data.forEach(function(queue){
-            $scope.summaries[queue.profile] = queue;
-        });
-        //fetch data
-        data.forEach($scope.loadQueue);
-    };
-    //instead, we could have a list of user selected profiles to watch
-    $scope.loadData = function() {
-        var httpRequest = $http({
-            method: 'GET',
-            url: 'summary.php?summaryProfiles'
-        }).success($scope.loadQueues);
-    };
-
-    if($scope.hideSummary == false) $scope.loadData();
+        else if(newval == true && requestSocket) {
+            requestSocket.close();
+        }
+    });
+    //using a timeout to not block further rendering
+    if($scope.hideSummary == false) $timeout($scope.loadData,0);
 }
 
 function Dynamic($scope, $http, $timeout, pref) {
@@ -142,7 +186,6 @@ function Dynamic($scope, $http, $timeout, pref) {
     $scope.feedbacks = [];
     $scope.queueList = [];
 
-    pref.load($scope);
     pref.watch('queueListSelect',$scope);
     //pref.watch('filterListSelect',$scope);
     pref.watch('filterSearch',$scope);
@@ -155,6 +198,7 @@ function Dynamic($scope, $http, $timeout, pref) {
         function(){$scope.changeRefresh();} );
 
     $scope.getQueueList = function() {
+        $scope.queueList = '[{"Loading Options","Loading"}]';
         var httpRequest = $http({
             method: 'GET',
             url: 'jtable.php?showProfiles',
@@ -162,7 +206,6 @@ function Dynamic($scope, $http, $timeout, pref) {
         }).success(function(data, status) {
             $scope.queueList = data;
         });
-        $scope.queueList = '[{"Loading Options","Loading"}]';
     }
     $scope.getFilterList = function() {
         var httpRequest = $http({
@@ -178,18 +221,19 @@ function Dynamic($scope, $http, $timeout, pref) {
     $scope.changeRefresh = function() {
         //buffer modifications
         $timeout.cancel($scope.refreshTimeTimer);
-        $scope.refreshTimeTimer = $timeout($scope.loadFeedback,1000);
+        $scope.refreshTimeTimer = $timeout($scope.loadFeedback,300);
     }
 
     $scope.processTickets = function(data) {
         data.forEach(function(t) {
         if(t.iscloud == "1") {
+            if(!t.account_link) t.account_link = "";
             var ticket = t.ticket.replace('ZEN_','');
-            var account = t.account_link.replace('DDI ','');
+            var account = (''+t.account_link).replace('DDI ','');
             t.aname = t.account_link;
 
             t.ticketUrl='https://rackspacecloud.zendesk.com/tickets/'+ticket;
-            t.accountUrl='https://rackspacecloud.zendesk.com/tickets/'+account;
+            t.accountUrl='https://us.cloudcontrol.rackspacecloud.com/customer/'+account+'/servers';
         }else{
           t.ticketUrl='https://core.rackspace.com/ticket/'+t.ticket;
           t.accountUrl='https://core.rackspace.com/account/'+t.account;
@@ -199,6 +243,7 @@ function Dynamic($scope, $http, $timeout, pref) {
     }
 
     $scope.loadFeedback = function() {
+	//return true;
         $timeout.cancel($scope.timeOutHolder);
         var options = 'queue';
         if($scope.queueListSelect != undefined)

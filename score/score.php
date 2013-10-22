@@ -98,7 +98,7 @@ function getScoreModifier($ticket,$profile){
 function getScoreModifierRules($profile) {
 	require_once('profile_list.inc');
 	//look up profile
-	if(!is_array($qs) || !isset($qs[$profile]))
+	if(!isset($qs) || !is_array($qs) || !isset($qs[$profile]))
 		return array();
 	if(!isset($qs[$profile]['modifier']))
 		return array();

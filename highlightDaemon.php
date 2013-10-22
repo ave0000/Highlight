@@ -1,52 +1,50 @@
 <?php
 if(!isset($argv)) exit("CLI only");
 
-
-
 function hashCache($redis,$obj) {
 	$fields = array(
 		"OnWatch",
 		"account",
 		"aname",
-		"fepoch",
+		"fepochtime",
 		"category",
 		"iscloud",
 		"platform",
-		"score",
+		//"score",
 		"sev",
 		"status",
 		"subject",
 		"team",
 		"ticket",
+		"account_link",
 		);
 	//var_dump($obj);
 	$ticketList = array();
+	$redis->multi();
 	foreach($obj as $ticket){
 		$store = array();
 		foreach($fields as $field) {
-			$store[$field] = $ticket->{$field};
+			if(property_exists($ticket,$field))
+				$store[$field] = $ticket->{$field};
 		}
 		$redis->hMSet('ticket:'.$ticket->ticket,$store);
 		$ticketList[] = $ticket->ticket;
 	}
+	$redis->exec();
 	return $ticketList;
 }
 
 function saveProfile($redis,$name,$data){
-    //$redis = new Redis();
-    //$redis->pconnect('127.0.0.1', 6379);
-    $data = serialize($data);
+    //$data = serialize($data);
+    $data = json_encode($data);
     $redis->set($name, $data);
     $redis->expire($name, 60);
     $redis->publish('updateProfile'.$name,$name);
 }
 
 function saveTicketList($redis,$name,$data){
-    //$redis = new Redis();
-    //$redis->pconnect('127.0.0.1', 6379);
-    //$data = serialize($data);
     $name = 'ticketList:'.$name;
-    $redis->set($name, $data);
+    $redis->set($name, json_encode($data));
     $redis->set($name.":timestamp",$data);
     //$redis->expire($name, 60);
     $data = json_encode($data);
@@ -54,13 +52,9 @@ function saveTicketList($redis,$name,$data){
 }
 
 function saveSummary($redis,$name,$data){
-	//$redis = new Redis();
-	//$redis->pconnect('127.0.0.1', 6379);
-	//$data = json_decode($data);
-	$data = serialize($data);
-	$redis->set($name, $data);
-	$redis->expire($name, 30);
-	$redis->publish('update'.$name,$data);
+	$jdata = json_encode($data);
+	$redis->set($name,$jdata);
+	$redis->publish('update'.$name,$jdata);
 }
 
 function getCache($redis,$profile,$latency) {
@@ -72,21 +66,25 @@ function getCache($redis,$profile,$latency) {
 
 	//hitting oneview is apparently very expensive
 	$slick = 'http://oneview.rackspace.com/slick.php';
-	$url = $slick . '?fmt=json&latency='.$latency.'.&profile=' . urlencode($profile);
+	$url = $slick . '?fmt=json&latency='.$latency.'&profile=' . urlencode($profile);
+	echo "getting $url\n";
 	
 	$contents = file_get_contents($url);
 	$contents = json_decode($contents);
 	$data = $contents;//->queue;
 	$sum = $contents->summary;
 
+	$ticketList = hashCache($redis,$data->queue);
+	saveTicketList($redis,$profile,$ticketList);
+	//saveProfile($redis,$profile,$data);
+
 	$out->profile = $profile;
 	$out->totalCount = $sum->total_count;
 	$out->latency = $sum->{$latency};
+	$out->timeStamp = round( (microtime(true) * 1000) );
 
-	$ticketList = hashCache($redis,$data->queue);
-	saveTicketList($redis,$profile,$ticketList);
-	saveProfile($redis,$profile,$data);
 	saveSummary($redis,$cacheProfile,$out);
+	
 	return $out;
 }
 
@@ -105,6 +103,15 @@ $keepGoing = true;
 $redis = new Redis();
 $redis->pconnect($address);
 
+function isFresh($entry,$limit=60000) {
+	if($entry === false) return false;
+	if(!property_exists($entry,'timeStamp')) return false;
+	$now = round((microtime(true) * 1000));
+	$diff = $now - $entry->timeStamp;
+	if($diff > $limit) return false;
+	return true;
+}
+
 while($keepGoing) {
 	try{
 	//prioritize queue requests over summary requests
@@ -118,19 +125,16 @@ while($keepGoing) {
 
 	$popped = $redis->blpop('wantNewSummary',0);
 	$entry = $popped[1];
-	if($entry != "" && ($redis->get($entry) === false)){
+	if($entry != "" && !isFresh($redis->get($entry))){
 		//summary:7
 		$profile = substr($entry,7);
 		$latency = strstr($profile,'latency');
 		$profile = strstr($profile,'latency',true);
-		//echo "getting '".$profile."' with ".$latency;
 		getCache($redis,$profile,$latency);
-		//echo "--got\n";
-		//sleep(1);
 	}
-	//echo $redis->llen('wantNewSummary')."\n";
 	}catch(Exception $e){
 		echo "Reconnecting\n";
+		sleep(1);
 		$redis = new Redis();
 		$redis->pconnect($address);
 	}
