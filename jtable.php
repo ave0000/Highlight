@@ -23,8 +23,23 @@ function getCachedProfile($profile) {
 }
 
 function getProfileData($profile) {
-    $hasCache = getCachedProfile($profile);
-    return $hasCache->queue;
+    $list = 'ticketList:'.$profile;
+    $redis = new Redis();
+    $redis->pconnect('127.0.0.1',6379);
+    $boop = $redis->get($list);
+    if($boop === false || $boop == false) {
+        $redis->rpush('wantNewQueue',$profile);
+        return "try again soon";
+    }
+    $out = array();
+    $boop = json_decode($boop);
+    
+    foreach($boop as $t) {
+        $element = (object) $redis->hgetall('ticket:'.$t);
+        $out[] = $element;
+    }
+    
+    return $out;
 }
 
 //a list of profiles, minus the ones we don't want
@@ -102,15 +117,16 @@ function getQueueData($profiles) {
 function processTest($q,$profile) {
     if(!is_array($q) || count($q)==0) return $q;
     require_once('score/score.php');
+    $now = time();
+    
     //queue as ticket
     foreach ($q as $t){
+        $t->age_seconds = $now - $t->fepochtime;
         $t->score = getScore($t,$profile);
-	//problems with unicode strings?
         $t->subject = substr($t->subject, 0, 100);
         if(!property_exists($t,'aname')) $t->aname = $t->account;
         $t->aname = substr($t->aname, 0,40);
-        //if($t->oldScore != $t->score)
-            $out[] = $t;
+        $out[] = $t;
     }
     return $out;
 }

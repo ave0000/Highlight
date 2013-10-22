@@ -6,19 +6,21 @@ function hashCache($redis,$obj) {
 		"OnWatch",
 		"account",
 		"aname",
-		"fepoch",
+		"fepochtime",
 		"category",
 		"iscloud",
 		"platform",
-		"score",
+		//"score",
 		"sev",
 		"status",
 		"subject",
 		"team",
 		"ticket",
+		"account_link",
 		);
 	//var_dump($obj);
 	$ticketList = array();
+	$redis->multi();
 	foreach($obj as $ticket){
 		$store = array();
 		foreach($fields as $field) {
@@ -28,6 +30,7 @@ function hashCache($redis,$obj) {
 		$redis->hMSet('ticket:'.$ticket->ticket,$store);
 		$ticketList[] = $ticket->ticket;
 	}
+	$redis->exec();
 	return $ticketList;
 }
 
@@ -73,7 +76,7 @@ function getCache($redis,$profile,$latency) {
 
 	$ticketList = hashCache($redis,$data->queue);
 	saveTicketList($redis,$profile,$ticketList);
-	saveProfile($redis,$profile,$data);
+	//saveProfile($redis,$profile,$data);
 
 	$out->profile = $profile;
 	$out->totalCount = $sum->total_count;
@@ -120,7 +123,6 @@ while($keepGoing) {
 		}
 	}
 
-	echo "popping next ...\n";
 	$popped = $redis->blpop('wantNewSummary',0);
 	$entry = $popped[1];
 	if($entry != "" && !isFresh($redis->get($entry))){
