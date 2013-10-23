@@ -31,9 +31,9 @@ function getProfileData($profile) {
         $redis->rpush('wantNewQueue',$profile);
         return "try again soon";
     }
-    $out = array();
+
     $boop = json_decode($boop);
-    
+    $out = array();    
     foreach($boop as $t) {
         $element = (object) $redis->hgetall('ticket:'.$t);
         $out[] = $element;
@@ -118,10 +118,11 @@ function processTest($q,$profile) {
     if(!is_array($q) || count($q)==0) return $q;
     require_once('score/score.php');
     $now = time();
-    
+
     //queue as ticket
     foreach ($q as $t){
-        $t->age_seconds = $now - $t->fepochtime;
+        if(property_exists($t,'fepochtime'))
+            $t->age_seconds = $now - $t->fepochtime;
         $t->score = getScore($t,$profile);
         $t->subject = substr($t->subject, 0, 100);
         if(!property_exists($t,'aname')) $t->aname = $t->account;

@@ -4,7 +4,7 @@ var redisHost = serverHost+':3000/';
 
 var app = angular.module('myApp', []);
 
-//runs a lot needs to be efficient
+//timceCalc runs a lot, needs to be efficient
 //jsperfs indicate + for concat
 //some indicate that |0 is best for rounding
 app.filter('timeCalc', function() {
@@ -17,9 +17,7 @@ app.filter('timeCalc', function() {
 
 app.filter('summaryColor',function(){
     return function(secs) {
-        if(secs % 1 !== 0) //make sure it's a number
-            return ''; 
-        else if(secs < 10800)
+        if(secs % 1 !== 0 || secs < 10800)
             return 'green';
         else if (secs < 21600)
             return 'yellow';
@@ -220,7 +218,7 @@ function Dynamic($scope, $http, $timeout, pref) {
     };
 
     $scope.changeRefresh = function() {
-        //buffer modifications
+        //modifications buffer
         $timeout.cancel($scope.refreshTimeTimer);
         $scope.refreshTimeTimer = $timeout($scope.loadFeedback,300);
     }
@@ -237,8 +235,8 @@ function Dynamic($scope, $http, $timeout, pref) {
             t.ticketUrl='https://rackspacecloud.zendesk.com/tickets/'+ticket;
             t.accountUrl='https://us.cloudcontrol.rackspacecloud.com/customer/'+account+'/servers';
         }else{
-          t.ticketUrl='https://core.rackspace.com/ticket/'+t.ticket;
-          t.accountUrl='https://core.rackspace.com/account/'+t.account;
+            t.ticketUrl='https://core.rackspace.com/ticket/'+t.ticket;
+            t.accountUrl='https://core.rackspace.com/account/'+t.account;
         }
         });
         $scope.feedbacks = data;
@@ -276,8 +274,6 @@ function Dynamic($scope, $http, $timeout, pref) {
         });
     };
 
-
-
     var sortAge = function(t) {return parseInt(t.age_seconds,10);};
     var sortScore = function(t) {return (t.score=='-')?9999999:parseInt(t.score,10);};
     var sortPlatform = function(t) {return t.platform;};
@@ -302,6 +298,14 @@ function Dynamic($scope, $http, $timeout, pref) {
     }
 
     $scope.flashScreen = function() {
-        document.body.style.backgroundColor="yellow";
+        var derp = document.body.style;
+        derp.backgroundColor="yellow";
+        setTimeout(function(){derp.backgroundColor="black";},100);
+        setTimeout(function(){derp.backgroundColor="yellow";},150);
+        setTimeout(function(){derp.backgroundColor="black";},175);
+        setTimeout(function(){derp.backgroundColor="indigo";},250);
+        setTimeout(function(){derp.backgroundColor="black";},300);
+        setTimeout(function(){derp.backgroundColor="yellow";},325);
+        setTimeout(function(){derp.backgroundColor="";},400);
     }
 }
