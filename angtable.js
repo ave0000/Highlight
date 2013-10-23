@@ -4,31 +4,27 @@ var redisHost = serverHost+':3000/';
 
 var app = angular.module('myApp', []);
 
+//runs a lot needs to be efficient
+//jsperfs indicate + for concat
+//some indicate that |0 is best for rounding
 app.filter('timeCalc', function() {
     return function(secs) {
-        if(secs == undefined) return "?";
-        var minutes;
-        var hours = parseInt(parseInt(secs) / 3600);
-
-        secs -= (hours * 3600);
-        minutes = parseInt(secs / 60);
-
-        return hours + ':' + (minutes < 10 ? "0" : "") +  minutes;
+        if(secs % 1 !== 0) return '?';
+        var mins = secs%60;
+        return (secs/3600 |0) + (mins%60 < 10 ? ':0' : ':') + mins%60;
     }
 });
 
 app.filter('summaryColor',function(){
     return function(secs) {
-        var red = 21600;
-        var yellow = 10800;
-        var color = 'green';
-
-        if(!secs || !(secs=parseInt(secs))) return color;
-        if (secs >= red)
-            color='red';
-        else if (secs >= yellow)
-            color='yellow';
-        return color;
+        if(secs % 1 !== 0) //make sure it's a number
+            return ''; 
+        else if(secs < 10800)
+            return 'green';
+        else if (secs < 21600)
+            return 'yellow';
+        else
+            return 'red';
     }
 });
 
@@ -197,6 +193,11 @@ function Dynamic($scope, $http, $timeout, pref) {
     $scope.$watch('queueListSelect + queueRefreshTime + filterListSelect', 
         function(){$scope.changeRefresh();} );
 
+    $scope.$watch('showingTickets.length',function(len) {
+        if(len != undefined)
+            window.parent.document.title = len + ' - Highlight';
+    });
+
     $scope.getQueueList = function() {
         $scope.queueList = '[{"Loading Options","Loading"}]';
         var httpRequest = $http({
@@ -226,6 +227,7 @@ function Dynamic($scope, $http, $timeout, pref) {
 
     $scope.processTickets = function(data) {
         data.forEach(function(t) {
+
         if(t.iscloud == "1") {
             if(!t.account_link) t.account_link = "";
             var ticket = t.ticket.replace('ZEN_','');
@@ -274,20 +276,15 @@ function Dynamic($scope, $http, $timeout, pref) {
         });
     };
 
-    $scope.sortAge = function(t) {return parseInt(t.age_seconds);};
-    $scope.sortScore = function(t) {return (t.score=='-')?9999999:parseInt(t.score);};
-    $scope.sortPlatform = function(t) {return t.platform;};
-    $scope.sortSev = function(t) {
+
+
+    var sortAge = function(t) {return parseInt(t.age_seconds,10);};
+    var sortScore = function(t) {return (t.score=='-')?9999999:parseInt(t.score,10);};
+    var sortPlatform = function(t) {return t.platform;};
+    var sortSev = function(t) {
         if(t.sev == 'emergency') return 9000;
         else if(t.sev == 'urgent') return 1000;
         else return 0;
-    };
-
-    $scope.ticketCount = function(asdf) {
-        if( !($scope.showingTickets instanceof Array) ) return 0;
-        var len = $scope.showingTickets.length;
-        window.parent.document.title = len + ' - Highlight';
-        return len;
     };
 
     //some columns don't sort right
@@ -296,10 +293,10 @@ function Dynamic($scope, $http, $timeout, pref) {
         switch($scope.predicate){
             case undefined:
             case '': 
-            case 'Score': return $scope.sortScore;
-            case 'Age': return $scope.sortAge;
-            case 'Platform': return $scope.sortPlatform;
-            case 'Ticket': return $scope.sortSev;
+            case 'Score': return sortScore;
+            case 'Age': return sortAge;
+            case 'Platform': return sortPlatform;
+            case 'Ticket': return sortSev;
             default: return $scope.predicate;
         }
     }
