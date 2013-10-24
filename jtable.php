@@ -90,14 +90,13 @@ function getProfileListShort() {
 
 function selectProfile($requested) {
     $profiles = getProfileListShort();
-    $profile = $profiles['Enterprise All'];
 
     if(in_array($requested,$profiles))
-        $profile = array_search($requested,$profiles);
-    else if(in_array($requested,$profiles))
-        $profile = $profiles[$reqQ];
+        return array_search($requested,$profiles);
+    else if(in_array($requested,array_keys($profiles)))
+        return $requested;
 
-    return $profile;
+    return 'Enterprise All';
 }
 
 //Get data for several queues
