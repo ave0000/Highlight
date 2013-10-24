@@ -118,14 +118,17 @@ function processTest($q,$profile) {
     require_once('score/score.php');
     $now = time();
 
-    //queue as ticket
+    // * populate age and score fields, because they're live data
+    // * shorten subject and account because some are too long
+    // * cloud tickets come in with an account name of "false" .. this is stupid
     foreach ($q as $t){
         if(property_exists($t,'fepochtime'))
             $t->age_seconds = $now - $t->fepochtime;
         $t->score = getScore($t,$profile);
         $t->subject = substr($t->subject, 0, 100);
-        if(!property_exists($t,'aname')) $t->aname = $t->account;
-        $t->aname = substr($t->aname, 0,40);
+        if(!property_exists($t,'aname') || $t->aname == false)
+            $t->aname = $t->account;
+        $t->aname = substr($t->aname, 0,30);
         $out[] = $t;
     }
     return $out;

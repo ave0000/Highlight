@@ -10,13 +10,11 @@ function hashCache($redis,$obj) {
 		"category",
 		"iscloud",
 		"platform",
-		//"score",
 		"sev",
 		"status",
 		"subject",
 		"team",
 		"ticket",
-		"account_link",
 		);
 	//var_dump($obj);
 	$ticketList = array();
@@ -34,20 +32,13 @@ function hashCache($redis,$obj) {
 	return $ticketList;
 }
 
-function saveProfile($redis,$name,$data){
-    //$data = serialize($data);
-    $data = json_encode($data);
-    $redis->set($name, $data);
-    $redis->expire($name, 60);
-    $redis->publish('updateProfile'.$name,$name);
-}
-
 function saveTicketList($redis,$name,$data){
     $name = 'ticketList:'.$name;
-    $redis->set($name, json_encode($data));
-    $redis->set($name.":timestamp",$data);
-    //$redis->expire($name, 60);
     $data = json_encode($data);
+    $now  = round((microtime(true) * 1000))
+    $redis->set($name, $data);
+    $redis->set($name.":timestamp",$now);
+
     $redis->publish($name,$data);
 }
 
@@ -76,7 +67,6 @@ function getCache($redis,$profile,$latency) {
 
 	$ticketList = hashCache($redis,$data->queue);
 	saveTicketList($redis,$profile,$ticketList);
-	//saveProfile($redis,$profile,$data);
 
 	$out->profile = $profile;
 	$out->totalCount = $sum->total_count;

@@ -32,7 +32,7 @@
         <!--<input type=button value="X" ng-click="hideFilters = !hideFilters;">-->
         <label for=queueList>Queue:</label>
         <select ng-init="getQueueList()" id=queueList ng-model="queueListSelect" ng-options="name for (name,shortname) in queueList">
-            <option value=''>Enterprise All</option>
+            <option value='All'>All</option>
         </select>
         <label for=specialFilter>Filters:</label>
         <select ng-init="getFilterList()" id=specialFilter ng-model="filterListSelect" ng-options="filter.name for filter in filterList">
@@ -83,7 +83,7 @@
             >OS</a></th>
     </tr>
     <tr ng-repeat="t in (showingTickets = (feedbacks |filter:filterSearch |orderBy:getOrder():reverse))">
-        <td><a target="_blank" href="{{t.ticketUrl}}" class="{{t.sev}}">{{t.ticket}}</a></td>
+        <td><a target="_blank" href="{{t.ticketUrl}}" class="status {{t.sev}}">{{t.ticket}}</a></td>
         <td ng-bind="t.age_seconds | timeCalc"></td>
         <td ng-bind="t.score"></td>
         <td ng-class="{ onWatchIcon: t.OnWatch==1}">
