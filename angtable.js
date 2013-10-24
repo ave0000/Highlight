@@ -1,17 +1,16 @@
 "use strict";
 var serverHost = 'highlight.res.rackspace.com';
 var redisHost = serverHost+':3000/';
-
 var app = angular.module('myApp', []);
 
 //timceCalc runs a lot, needs to be efficient
-//jsperfs indicate + for concat
+//jsperfs indicate '+'' is good for strings
 //some indicate that |0 is best for rounding
 app.filter('timeCalc', function() {
     return function(secs) {
         if(secs % 1 !== 0) return '?';
-        var mins = secs%60;
-        return (secs/3600 |0) + (mins%60 < 10 ? ':0' : ':') + mins%60;
+        var mins = (secs/60|0)%60;
+        return (secs/3600 |0) + (mins < 10 ? ':0' : ':') + mins;
     }
 });
 
@@ -35,14 +34,13 @@ app.filter('noSpaces',function(){
 
 //service to handle saving and loading preferences
 app.service('pref',function($http){
-    var prefurl='jtable.php';
     var pref = this;//so i can call myself
+    var prefurl='jtable.php';
     this.cache = new Array();
 
     //set a single preference value
     this.save = function(key,val){
-        if(pref.cache[key] && pref.cache[key] == val) return true;
-
+        if(pref.cache[key]!==undefined && pref.cache[key] == val) return true;
         console.log('saving '+key+' as:"'+val+'"');
         //maybe these should be buffered into blocks...
         var prefs = {last: Date.now()};
@@ -53,17 +51,13 @@ app.service('pref',function($http){
             data: prefs,
         });
     }
-    //populate a single preference value once
-    this.get = function(key,$scope) {
-        return $http.get(prefurl+'?userPrefs='+key)
-            .then(function (response) {
-                if(response.data && response.data[key])
-                    pref.cache[key] = $scope[key] = response.data[key];
-            });
-    };
     //watch a variable in the given scope for changes
     this.watch = function(key,$scope) {
-        pref.get(key,$scope);
+        $http.get(prefurl+'?userPrefs='+key)
+            .then(function (response) {
+                if(response.data !==undefined && response.data[key] !== undefined)
+                    pref.cache[key] = $scope[key] = response.data[key];
+            });
         $scope.$watch(key, function(newval, oldval) {
             if (newval!=undefined && newval !== oldval)
                 pref.save(key,newval);
@@ -173,17 +167,16 @@ function Summary($scope, $http, $timeout,pref) {
 }
 
 function Dynamic($scope, $http, $timeout, pref) {
-    $scope.reverse = true;
-    $scope.predicate = 'Score';
-
     $scope.queueRefreshTime = 30;
+    $scope.predicate = 'Score';
+    $scope.reverse = true;
     $scope.feedbacks = [];
     $scope.queueList = [];
 
     pref.watch('queueListSelect',$scope);
     //pref.watch('filterListSelect',$scope);
-    pref.watch('filterSearch',$scope);
     pref.watch('queueRefreshTime',$scope);
+    pref.watch('filterSearch',$scope);
     pref.watch('predicate',$scope);
     pref.watch('reverse',$scope);
 
@@ -192,9 +185,8 @@ function Dynamic($scope, $http, $timeout, pref) {
         function(){$scope.changeRefresh();} );
 
     $scope.$watch('showingTickets.length',function(len) {
-        if(len != undefined)
-            window.parent.document.title = len + ' - Highlight';
-    });
+        if(len != undefined && len != window.parent.document.title)
+            window.parent.document.title = len + ' - Highlight';});
 
     $scope.getQueueList = function() {
         $scope.queueList = '[{"Loading Options","Loading"}]';
@@ -202,10 +194,9 @@ function Dynamic($scope, $http, $timeout, pref) {
             method: 'GET',
             url: 'jtable.php?showProfiles',
             cache: true,
-        }).success(function(data, status) {
-            $scope.queueList = data;
-        });
+        }).success(function(data, status){$scope.queueList = data;});
     }
+
     $scope.getFilterList = function() {
         var httpRequest = $http({
             method: 'GET',
@@ -217,15 +208,12 @@ function Dynamic($scope, $http, $timeout, pref) {
         $scope.filterList = '[Loading]';
     };
 
-    $scope.changeRefresh = function() {
-        //modifications buffer
+    $scope.changeRefresh = function() {//modifications buffer
         $timeout.cancel($scope.refreshTimeTimer);
-        $scope.refreshTimeTimer = $timeout($scope.loadFeedback,300);
+        $scope.refreshTimeTimer = $timeout($scope.loadFeedback,400);
     }
 
-    $scope.processTickets = function(data) {
-        data.forEach(function(t) {
-
+    var addTicket = function(t) {
         if(t.iscloud == "1") {
             if(!t.account_link) t.account_link = "";
             var ticket = t.ticket.replace('ZEN_','');
@@ -238,12 +226,10 @@ function Dynamic($scope, $http, $timeout, pref) {
             t.ticketUrl='https://core.rackspace.com/ticket/'+t.ticket;
             t.accountUrl='https://core.rackspace.com/account/'+t.account;
         }
-        });
-        $scope.feedbacks = data;
+        return t;
     }
 
     $scope.loadFeedback = function() {
-	//return true;
         $timeout.cancel($scope.timeOutHolder);
         var options = 'queue';
         if($scope.queueListSelect != undefined)
@@ -252,7 +238,7 @@ function Dynamic($scope, $http, $timeout, pref) {
             options = options+'&filter='+$scope.filterListSelect.name;
             // TODO: if filterListSelect option is different than filterList option then ...
             if($scope.filterListSelect.parameters != undefined){
-                options = options+'&filterOpt='+$scope.filterListSelect.parameters[0].value;
+                options += '&filterOpt='+$scope.filterListSelect.parameters[0].value;
             }
         }
         $scope.gettingFeedback = true;
@@ -265,10 +251,23 @@ function Dynamic($scope, $http, $timeout, pref) {
             else if(!data || !(data instanceof Array))
                 data = [{"subject":"None"}];
             else{
-                $scope.processTickets(data);
-                //$scope.feedbacks = data;
+                var localList = [];//build an index
+                var old = $scope.feedbacks;
+                var len = old.length;
+                data.forEach(function(t) {
+                    localList[t.ticket] = true;
+                    var i = len;
+                    while(i--)
+                        if(old[i].ticket == t.ticket)
+                            return angular.extend(old[i],t);
+                    old.push(addTicket(t));
+                });
+                while(len--){//if it doesn't exist in the list,
+                    if(!localList[old[len].ticket]){
+                        old.splice(len,1);//remove it.
+                    }
+                }                
                 $scope.gettingFeedback = false;
-
             }
             $scope.timeOutHolder = $timeout($scope.loadFeedback, retryIn);
         });
