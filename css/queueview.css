@@ -56,10 +56,10 @@ input {
 }
 
 /*statuses*/
-.green,.standard {
+.green,.standard,.normal {
     background-color:#91B386;
 }
-.yellow,.urgent {
+.yellow,.urgent,.high {
     font-weight: bold;
     background-color:#F5E856;
 }
@@ -68,21 +68,15 @@ input {
     background-color:#FA3939;
 }
 
-/*
-.standard {background-color: #468847;}
-.urgent {background-color: #f89406;}
-.emergency {background-color: #b94a48;}
-*/
-
-.standard, .emergency, .urgent, .status {
+.status {
 	font-size: 0.85em;
 	padding: 1px 2px 3px;
 	border-radius:4px;
 }
-.standard, .emergency, .urgent {
+a.status {
 	color:black;
 }
-.standard:visited, .emergency:visited, .urgent:visited {
+a.status:visited {
 	color:gray;
 }
 
@@ -95,14 +89,14 @@ input {
 .NoFeedback {background: #99FF00;}
 .WaitingQC {background: #008000;} 
 
-
-
 .ticketTable th a {
 	padding: 0.25em;
 	display: block;
 	border: 2px solid rgba(0,0,0,0);
 }
-
+.ticketTable tr {
+        transition: background 0.08s ease-out;
+}
 .ticketTable td{height:1.5em;}
 
 .ticketColumnId {width:7em;}
@@ -172,4 +166,3 @@ input {
     transition: opacity 1s ease-in-out;
 }
 .hide{opacity: 0;}
-

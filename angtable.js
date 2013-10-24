@@ -66,6 +66,7 @@ app.service('pref',function($http){
 });
 
 
+var requestSocket;
 function Summary($scope, $http, $timeout,pref) {
     $scope.hideSummary = false;
     $scope.refreshTime = 30;
@@ -96,16 +97,20 @@ function Summary($scope, $http, $timeout,pref) {
     }
     pubSocket();
 
-    var requestSocket;
+    //var requestSocket;
     function reqSocket(data) {//polling, more or less.
         requestSocket = new WebSocket("ws://"+redisHost);
         requestSocket.onopen = function() {
             data.forEach($scope.loadQueue);
         };
         requestSocket.onmessage = function(msg) {
-            var data = JSON.parse(msg.data)
+            var data = msg.data;
+            try{data = JSON.parse(data);}
+            catch(e) {console.log("couldn't parse json");}
             if(data.profile)
                 $scope.gotQueue(data);
+            else
+                console.log(msg);
         };
         requestSocket.onclose = function(a) {
             if($scope.hideSummary == true ) return true;
@@ -214,14 +219,12 @@ function Dynamic($scope, $http, $timeout, pref) {
     }
 
     var addTicket = function(t) {
+        if(!t.sev) 
+            t.sev = "Standard";
         if(t.iscloud == "1") {
-            if(!t.account_link) t.account_link = "";
             var ticket = t.ticket.replace('ZEN_','');
-            var account = (''+t.account_link).replace('DDI ','');
-            t.aname = t.account_link;
-
             t.ticketUrl='https://rackspacecloud.zendesk.com/tickets/'+ticket;
-            t.accountUrl='https://us.cloudcontrol.rackspacecloud.com/customer/'+account+'/servers';
+            t.accountUrl='https://us.cloudcontrol.rackspacecloud.com/customer/'+t.account+'/servers';
         }else{
             t.ticketUrl='https://core.rackspace.com/ticket/'+t.ticket;
             t.accountUrl='https://core.rackspace.com/account/'+t.account;
@@ -297,6 +300,13 @@ function Dynamic($scope, $http, $timeout, pref) {
     }
 
     $scope.flashScreen = function() {
+        var allTheThings = document.getElementsByClassName("ticketTable")[0].rows;
+        for(var i=0;i<allTheThings.length;i++) {
+            var e = allTheThings[i].style;
+            setTimeout(function(el){el.backgroundColor = 'yellow';},40*i,e);
+            setTimeout(function(el){el.backgroundColor = '';},75+40*i,e);
+        }
+
         var derp = document.body.style;
         derp.backgroundColor="yellow";
         setTimeout(function(){derp.backgroundColor="black";},100);
@@ -306,5 +316,6 @@ function Dynamic($scope, $http, $timeout, pref) {
         setTimeout(function(){derp.backgroundColor="black";},300);
         setTimeout(function(){derp.backgroundColor="yellow";},325);
         setTimeout(function(){derp.backgroundColor="";},400);
+
     }
 }
