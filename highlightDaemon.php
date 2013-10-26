@@ -7,6 +7,7 @@ function hashCache($redis,$obj) {
 		"account",
 		"aname",
 		"fepochtime",
+		"age_seconds",
 		"category",
 		"iscloud",
 		"platform",
@@ -35,7 +36,7 @@ function hashCache($redis,$obj) {
 function saveTicketList($redis,$name,$data){
     $name = 'ticketList:'.$name;
     $data = json_encode($data);
-    $now  = round((microtime(true) * 1000))
+    $now  = round((microtime(true) * 1000));
     $redis->set($name, $data);
     $redis->set($name.":timestamp",$now);
 

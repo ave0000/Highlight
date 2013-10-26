@@ -123,7 +123,10 @@ function processTest($q,$profile) {
     // * cloud tickets come in with an account name of "false" .. this is stupid
     foreach ($q as $t){
         if(property_exists($t,'fepochtime'))
-            $t->age_seconds = $now - $t->fepochtime;
+            $age =  $now - $t->fepochtime;
+	    if(property_exists($t,'age_seconds'))
+                $age = max($age,$t->age_seconds);
+            $t->age_seconds = $age;
         $t->score = getScore($t,$profile);
         $t->subject = substr($t->subject, 0, 100);
         if(!property_exists($t,'aname') || $t->aname == false)
