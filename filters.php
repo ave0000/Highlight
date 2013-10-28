@@ -92,10 +92,11 @@ function goAway($q,$type='/^((?!OPSMGR).)*$/'){
 }
 
 function accountFind($queue,$value) {
-    if(!is_array($queue)) return $queue;
+    if(!is_array($queue) || $value == '') return $queue;
 
+    $out = array();
     foreach($queue as $ticket)
-        if(stristr($ticket->account_link,$value)!==FALSE)
+        if(stristr($ticket->aname,$value)!==FALSE)
             $out[] = $ticket;
 
     if(count($out) < 1) {

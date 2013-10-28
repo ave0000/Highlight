@@ -6,7 +6,7 @@ function saveCache($data,$name='cache'){
 	//$data = json_encode($data);
 	$data = serialize($data);
 	$redis->set($name, $data);
-	$redis->expire($name, 30);
+	$redis->expire($name, 60);
 }
 
 function getCachedProfile($profile) {
@@ -23,21 +23,19 @@ function getCachedProfile($profile) {
 }
 
 function getProfileData($profile) {
-    $list = 'ticketList:'.$profile;
+    $listName = 'ticketList:'.$profile;
     $redis = new Redis();
     $redis->pconnect('127.0.0.1',6379);
-    $boop = $redis->get($list);
-    if($boop === false || $boop == false) {
+    $list = $redis->get($listName);
+    if($list === false || $list == false) {
         $redis->rpush('wantNewQueue',$profile);
         return "try again soon";
     }
 
-    $boop = json_decode($boop);
+    $list = json_decode($list);
     $out = array();    
-    foreach($boop as $t) {
-        $element = (object) $redis->hgetall('ticket:'.$t);
-        $out[] = $element;
-    }
+    foreach($list as $t)
+        $out[] = (object) $redis->hgetall('ticket:'.$t);
     
     return $out;
 }
