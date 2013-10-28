@@ -6,9 +6,14 @@ var WebSocketServer = require('ws').Server
 
 wss.on('connection', function(ws) {try{
     var clientHost = ws.upgradeReq.headers['x-forwarded-for'] || ws.upgradeReq.connection.remoteAddress;
-	console.log(' '+clientHost+' new connection');
+	console.log(clientHost+' new connection');
 
 	var db = redis.createClient('/dev/shm/redis.sock');
+    db.on("error", function(err) {
+      var msg = clientHost+"Error connecting to redis";
+      console.error(msg, err);
+      ws.close(msg,err);
+    });
     ws.on('message', function(message) {
         var parsed;
         try {parsed = JSON.parse(message);}
@@ -31,14 +36,9 @@ wss.on('connection', function(ws) {try{
                         console.log('error sending pubished message to '+clientHost);
                         console.log(e);}
                 })
-                ws.on('close',function(){
-                    console.log(clientHost+'closed connection');
-                    db.unsubscribe();
-                    db.end();
-                });
+
                 break;
             case "rpush":
-                //console.log(parsed);
                 db.rpush(parsed[1],parsed[2]);
                 break;
             case "stats":
@@ -47,11 +47,17 @@ wss.on('connection', function(ws) {try{
                 ws.send();
                 ws.send('=== Server Level ===');
                 ws.send(JSON.stringify(wss.clients));
-                console.log(wss.clients);
                 break;
             default:
                 console.log('received: %s', message);
         }}
+    });
+    ws.on('close',function(){
+        console.log(clientHost+' closed connection');
+        if(db && db.connected) {
+            db.punsubscribe('*');
+            db.end();
+        }
     });
     //ws.send('wordl');
 }catch(e) {console.log(e);}
