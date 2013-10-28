@@ -1,6 +1,6 @@
 "use strict";
 var serverHost = 'highlight.res.rackspace.com';
-var redisHost = serverHost+':3000/';
+var redisHost = serverHost+':3000';
 var app = angular.module('myApp', []);
 
 //timceCalc runs a lot, needs to be efficient
@@ -190,11 +190,11 @@ function Dynamic($scope, $http, $timeout, pref) {
         function(){$scope.changeRefresh();} );
 
     $scope.$watch('showingTickets.length',function(len) {
-        if(len != undefined && len != window.parent.document.title)
+        if(len != undefined /*&& len != window.parent.document.title*/)
             window.parent.document.title = len + ' - Highlight';});
 
     $scope.getQueueList = function() {
-        $scope.queueList = '[{"Loading Options","Loading"}]';
+        //$scope.queueList = '[{"Loading Options","Loading"}]';
         var httpRequest = $http({
             method: 'GET',
             url: 'jtable.php?showProfiles',
@@ -311,7 +311,6 @@ function Dynamic($scope, $http, $timeout, pref) {
         derp.backgroundColor="yellow";
         setTimeout(function(){derp.backgroundColor="black";},100);
         setTimeout(function(){derp.backgroundColor="yellow";},150);
-        setTimeout(function(){derp.backgroundColor="black";},175);
         setTimeout(function(){derp.backgroundColor="indigo";},250);
         setTimeout(function(){derp.backgroundColor="black";},300);
         setTimeout(function(){derp.backgroundColor="yellow";},325);
