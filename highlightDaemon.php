@@ -94,12 +94,13 @@ $keepGoing = true;
 $redis = new Redis();
 $redis->pconnect($address);
 
-function isFresh($entry,$limit=60000) {
+function isFresh($entry,$limit=5000) {
 	if($entry === false) return false;
-	if(!property_exists($entry,'timeStamp')) return false;
+	//if(!property_exists($entry,'timeStamp')) return false;
 	$now = round((microtime(true) * 1000));
-	$diff = $now - $entry->timeStamp;
+	$diff = $now - $entry;
 	if($diff > $limit) return false;
+	echo "*";
 	return true;
 }
 
@@ -116,14 +117,15 @@ while($keepGoing) {
 
 	$popped = $redis->blpop('wantNewSummary',0);
 	$entry = $popped[1];
-	if($entry != "" && !isFresh($redis->get($entry))){
+	if($entry != "" && !isFresh($redis->get($entry.':timestamp'))){
 		//summary:7
 		$profile = substr($entry,7);
 		$latency = strstr($profile,'latency');
 		$profile = strstr($profile,'latency',true);
-		getCache($redis,$profile,$latency);
+		if(!isFresh($redis->get('ticketList:'.$profile.':timestamp')))
+			getCache($redis,$profile,$latency);
 	}
-	}catch(Exception $e){
+}catch(Exception $e){
 		echo "Reconnecting\n";
 		sleep(1);
 		$redis = new Redis();
