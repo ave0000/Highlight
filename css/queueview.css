@@ -166,3 +166,11 @@ a.status:visited {
     transition: opacity 1s ease-in-out;
 }
 .hide{opacity: 0;}
+
+.lastComment {
+	background:#ccc;
+	height:6em;
+	overflow-y:scroll;
+	resize:vertical;
+	white-space: pre-wrap;
+}
