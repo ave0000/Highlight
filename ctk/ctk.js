@@ -14,6 +14,7 @@ var app = angular.module('personalQueue', ['Highlight']);
 
 function Personal($scope, $http, $timeout, pref) {
     $scope.tickets = [];
+    $scope.rev = false;
     $scope.refreshTime = 300;
     //i got a cookie!
     $scope.sso = readCookie('COOKIE_last_login');
@@ -64,6 +65,7 @@ function Personal($scope, $http, $timeout, pref) {
                         "status":"status.name",
                         //"statusColor":"status.color",
                         "subject":"subject",
+                        "sev":"severity.name",
                         "team":"support_team.name",
                         //"assignee":"assignee.name",
                         //"statuses":"all_status_flags",
@@ -100,6 +102,26 @@ function Personal($scope, $http, $timeout, pref) {
             $scope.timeOutHolder = $timeout($scope.loadData, $scope.refreshTime*1000);
         });
     };
+    var sortAge = function(t) {return t.age;};
+    var sortPlatform = function(t) {return t.platform;};
+    var sortSev = function(t) {
+        if(t.sev == 'Emergency') return 9000;
+        else if(t.sev == 'Urgent') return 1000;
+        else return 0;
+    };
+
+    //some columns don't sort right
+    //override them here
+    $scope.getOrder = function() {
+        switch($scope.sortBy){
+            case undefined:
+            case '': 
+            case 'Age': return sortAge;
+            case 'Platform': return sortPlatform;
+            case 'Ticket': return sortSev;
+            default: return $scope.sortBy;
+        }
+    }
     
 
 }

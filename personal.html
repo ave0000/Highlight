@@ -22,27 +22,44 @@
 
 <span ng-show="loading">Loading</span>
 
-<table ng-init="loadData()">
+<table ng-init="loadData()" class=ticketTable>
+    <col class="ticketColumnId">
+    <col class="ticketColumnStatus">
+    <col class="ticketColumnAccount">
+    <col class="ticketColumnSubject">
+    <col class="ticketColumnStatus">
+    <col class="ticketColumnPlatforms">
     <tr>
-        <th class="ticketColumnId">Tickets {{showingTickets.length}}</th>
-        <th class="ticketColumnAge">Age</th>
-        <th class="ticketColumnAccount">Account</th>
-        <th>subject</th>
-        <th class="ticketColumnTeam">Team</th>
-        <th class="ticketColumnStatus">Status</th>
-        <th class="ticketColumnPlatforms">OS</th>
+        <th><a ng-click="sortBy = 'Ticket'; rev=!rev" 
+            ng-class="{arrow_box: sortBy=='Ticket'}" 
+            >Tickets {{showingTickets.length}}</a></th>
+        <th><a ng-click="sortBy = 'Age'; rev=!rev" 
+            ng-class="{arrow_box: sortBy=='Age'}" 
+            >Age</a></th>
+        <th><a ng-click="sortBy = 'account'; rev=!rev" 
+            ng-class="{arrow_box: sortBy=='account'}" 
+            >Account</a></th>
+        <th><a ng-click="sortBy = 'subject'; rev=!rev"
+            ng-class="{arrow_box: sortBy=='subject'}"
+            >Subject</a></th>
+        <th><a ng-click="sortBy = 'status'; rev=!rev" 
+            ng-class="{arrow_box: sortBy=='status'}" 
+            >Status</a></th>
+        <th><a ng-click="sortBy = 'linux'; rev=!rev" 
+            ng-class="{arrow_box: sortBy=='linux'}" 
+            >OS</a></th>
     </tr>
-    <tr ng-repeat="t in (showingTickets = (tickets))">
-        <td><a target="_blank" href="https://core.rackspace.com/ticket/{{t.number}}">{{t.number}}</a></td>
+    <tr ng-repeat="t in (showingTickets = (tickets|orderBy:getOrder():rev))">
+        <td><a target="_blank" href="https://core.rackspace.com/ticket/{{t.number}}" class="status {{t.sev|lowercase}}">
+            {{t.number}}</a></td>
         <td ng-bind="t.age"></td>
         <td><a target="_blank" href="https://core.rackspace.com/account/{{t.account_id}}">{{t.account}}</a></td>
         <td ng-bind="t.subject"></td>
-        <td ng-bind="t.team"></td>
         <td><span ng-class="t.status | noSpaces" class="status" ng-bind="t.status"></span></td>
         <td>
-        <span ng-if="t.linux" class="os-linux">L</span>
-        <span ng-if="t.windows" class="os-windows">W</span>  </td>
-
+            <span ng-if="t.linux" class="os-linux">L</span>
+            <span ng-if="t.windows" class="os-windows">W</span>
+        </td>
     </tr>
 </table>
 
