@@ -30,6 +30,7 @@ function query($token,$query){
 }
 
 function getLastComment($token,$query){
+    if(substr($query,0,3) == "ZEN") return false;
     //this might be a good place to try to cache
     //...
     $ctkurl = 'https://proton.rackspace.com/webServices/getLastComment.php';
@@ -87,4 +88,3 @@ if(isset($_REQUEST['getUser'])){
 }
 
 ?>
-
