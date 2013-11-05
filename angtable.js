@@ -301,25 +301,6 @@ function Dynamic($scope, $http, $timeout, pref) {
         }
     }
 
-    $scope.flashScreen = function() {
-        var allTheThings = document.getElementsByClassName("ticketTable")[0].rows;
-        for(var i=0;i<allTheThings.length;i++) {
-            var e = allTheThings[i].style;
-            setTimeout(function(el){el.backgroundColor = 'yellow';},40*i,e);
-            setTimeout(function(el){el.backgroundColor = '';},75+40*i,e);
-        }
-
-        var derp = document.body.style;
-        derp.backgroundColor="yellow";
-        setTimeout(function(){derp.backgroundColor="black";},100);
-        setTimeout(function(){derp.backgroundColor="yellow";},150);
-        setTimeout(function(){derp.backgroundColor="indigo";},250);
-        setTimeout(function(){derp.backgroundColor="black";},300);
-        setTimeout(function(){derp.backgroundColor="yellow";},325);
-        setTimeout(function(){derp.backgroundColor="";},400);
-
-    }
-
     $scope.getComment = function(t) {
         //if it's already showing, then toggle it off
         if(t.lastComment) return t.lastComment = "";
@@ -332,6 +313,7 @@ function Dynamic($scope, $http, $timeout, pref) {
             url: 'ctk/query.php?ticket='+t.ticket,
             cache: true,
         }).success(function(data, status){
+            console.log(data.lastComment || data);
             t.lastComment = data.lastComment || data;
         });
     }
