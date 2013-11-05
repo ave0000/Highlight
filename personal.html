@@ -1,17 +1,17 @@
-
 <!DOCTYPE html>
 <html>
 <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <title>Queue Highlights</title>
-    <script type='text/javascript' src="http://code.angularjs.org/1.1.5/angular.min.js"></script>
-    <script src="ctk.js"></script>
-    <link rel="stylesheet" type="text/css" href="../css/queueview.css">
+    <script type='text/javascript' src="angular.js"></script>
+    <script src="angtable.js"></script>
+    <script src="ctk/ctk.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/queueview.css">
 </head>
 <body>
 
-<div ng-app="myApp">
-<div ng-controller="Dynamic">
+<div ng-app="personalQueue">
+<div ng-controller="Personal">
 <span ng-bind="title">Queue Data</span>
 <label for=ticketType>Type:</label><select id=ticketType ng-model="statusType" ng-change="changeRefresh()">
 		<option value=4>Active</option>
@@ -52,4 +52,3 @@
 
 </body>
 </html>
-
