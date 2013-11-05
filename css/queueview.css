@@ -80,14 +80,32 @@ a.status:visited {
 	color:gray;
 }
 
+/* All statuses available in Enterprise Services (All Teams) */
 .FeedbackReceived {background: #00FF88;}
-.New, .Open {background: #33FF33;}
-.Closedwithfeedback {background: #FFFFCC;}
-.InProgress {background: #99FF99;}
-.AlertReceived {background: #00F53D;}
+.New, 
+.Open {background: #33FF33;}
+.ConfirmSolved {background:#EFEFEF;}
+.DailyUpdate, 
+.MassTickets,
+.Monitoring {background:rgb(255, 255, 204);}
+.REQUIREFeedback {background: #E8E8E8;}
+.Closedwithfeedback,
+.OnHold-USB,
+.WeeklyUpdate {background: #FFFFCC;}
+.InProgress,
 .Unsolved {background: #99FF99;}
+.AlertReceived {background: #00F53D;}
 .NoFeedback {background: #99FF00;}
-.WaitingQC {background: #008000;} 
+.WaitingQC {background: #008000;}
+.MonthlyReports,
+.PendingManagedBackup,
+.PendingVendor {background: #D8D8D8;}
+.PendingCustomerApproval,
+.Scheduled {background:rgb(216, 216, 216);}
+.PendingImplementation {background: rgb(204, 0, 255);}
+.SubTicketActivity {background: #5599EF;}
+.WaitingonCloud {background: rgb(204, 204, 255);}
+
 
 .ticketTable th a {
 	padding: 0.25em;

@@ -18,6 +18,7 @@
 		<option value=8>Open</option>
 	</select>
 <label for=timeout>Timeout (sec):</label><input id=timeout size=2 value="30" ng-model="refreshTime" ng-change="changeRefresh()">
+<button ng-controller="Flash" ng-click="changeRefresh();flashScreen();">&#8623;</button>
 
 <span ng-show="loading">Loading</span>
 
@@ -37,7 +38,7 @@
         <td><a target="_blank" href="https://core.rackspace.com/account/{{t.account_id}}">{{t.account}}</a></td>
         <td ng-bind="t.subject"></td>
         <td ng-bind="t.team"></td>
-        <td ng-class="t.status | noSpaces">{{t.status}}</td>
+        <td><span ng-class="t.status | noSpaces" class="status" ng-bind="t.status"></span></td>
         <td>
         <span ng-if="t.linux" class="os-linux">L</span>
         <span ng-if="t.windows" class="os-windows">W</span>  </td>
