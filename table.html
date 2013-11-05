@@ -9,7 +9,7 @@
     <script src="angtable.js"></script>
 </head>
 <body>
-  <div ng-app="myApp">
+  <div ng-app="Highlight">
 <div ng-controller="Summary">
 <a ng-show="hideSummary" ng-click="hideSummary = !hideSummary" alt="Hide summary cards" style="background:#a8a8a8;float:right;">Show Summaries</a>
 <table class="statTable" ng-if="!hideSummary">
@@ -45,7 +45,6 @@
         <label for=timeout>Refresh:</label><input id=timeout size=2 value="3" ng-model="queueRefreshTime">
         <button ng-click="changeRefresh();flashScreen();">&#8623;</button>
         <span ng-class="{hide:!gettingFeedback}" class=loading>Loading</span>
-
     </div>
 <table class=ticketTable>
            <col class="ticketColumnId">
@@ -86,10 +85,11 @@
         <td><a target="_blank" href="{{t.ticketUrl}}" class="status {{t.sev}}">{{t.ticket}}</a></td>
         <td ng-bind="t.age_seconds | timeCalc"></td>
         <td ng-bind="t.score"></td>
-        <td ng-class="{ onWatchIcon: t.OnWatch==1}">
-            <a target="_blank" href="{{t.accountUrl}}">{{t.aname}}</a>
+        <td ng-class="{ onWatchIcon: t.OnWatch==1}"><a target="_blank" href="{{t.accountUrl}}">{{t.aname}}</a></td>
+        <td>
+            <a ng-click="getComment(t)" ng-class="{red: t.lastComment}" class="message">+</a> {{t.subject}}
+            <pre ng-show="t.lastComment" class="lastComment" ng-bind="t.lastComment"></pre>
         </td>
-        <td ng-bind="t.subject"></td>
         <td ng-bind="t.team"></td>
         <td><span ng-bind="t.status" ng-class="t.status | noSpaces" class="status"></span></td>
         <td>

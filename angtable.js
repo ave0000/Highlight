@@ -1,10 +1,10 @@
 "use strict";
 var serverHost = 'highlight.res.rackspace.com';
-var redisHost = serverHost+':3000';
-var app = angular.module('myApp', []);
+var redisHost = serverHost+':3001';
+var app = angular.module('Highlight', []);
 
 //timceCalc runs a lot, needs to be efficient
-//jsperfs indicate '+'' is good for strings
+//jsperfs indicate '+'' is good for concats
 //some indicate that |0 is best for rounding
 app.filter('timeCalc', function() {
     return function(secs) {
@@ -77,7 +77,7 @@ function Summary($scope, $http, $timeout,pref) {
     function pubSocket() {
         jsonSocket = new WebSocket("ws://"+redisHost);
         jsonSocket.onopen = function() {
-            this.send(JSON.stringify(["PSUBSCRIBE", "updatesummary*"]));
+            this.send(JSON.stringify(["PSUBSCRIBE", "testsummary:*"]));
             console.log("WebSocket connected and subscribed to summary updates.");
         };
         jsonSocket.onmessage = function(message) {
@@ -128,23 +128,25 @@ function Summary($scope, $http, $timeout,pref) {
     }
     $scope.loadQueue = function(queue) {
         if(requestSocket.readyState != WebSocket.OPEN) return false;
-
+        var queueStr = 'testsummary:'+queue.profile+':latency_'+queue.latencyCount;
+        var age;
         var retryIn = $scope.refreshTime*1000;
-        var queueStr = 'summary'+queue.profile+'latency_'+queue.latencyCount;
 
-        if(!queue.timeStamp) {//first run won't be populated
+        if(queue.timeStamp===undefined) {//first run won't be populated
             requestSocket.send(JSON.stringify(["GET", queueStr]));
+            queue.timeStamp = 0;
+            age = retryIn *0.75; //quarter of the normal refresh
+        }else
+            age = Date.now() - queue.timeStamp; //how long ago was it?
+
+        if(age > retryIn) {
+            //console.log(queue.profile+' data is '+age/1000+' seconds old, requesting new');
+            requestSocket.send(JSON.stringify(["rpush","wantNewSummaryTest",queueStr]));
         }else{
-            var age = Date.now() - queue.timeStamp;
-            if(age < retryIn) {
-                var diff = retryIn - age; //reschedule
-                //console.log(queue.profile+'too early for refresh: '+age+' trying again in '+diff);
-                $timeout.cancel(queue.timeout);
-                queue.timeout = $timeout(function () {$scope.loadQueue(queue)}, diff);
-            }else{
-                //console.log(queue.profile+' data is '+age/1000+' seconds old, requesting new');
-                requestSocket.send(JSON.stringify(["rpush","wantNewSummary",queueStr]))
-            }
+            var diff = retryIn - age; //reschedule
+            //console.log(queue.profile+'too early for refresh: '+age+' trying again in '+diff);
+            $timeout.cancel(queue.timeout);
+            queue.timeout = $timeout(function () {$scope.loadQueue(queue)}, diff);
         }
     };
     //fetch the list of profiles to render
@@ -194,7 +196,6 @@ function Dynamic($scope, $http, $timeout, pref) {
             window.parent.document.title = len + ' - Highlight';});
 
     $scope.getQueueList = function() {
-        //$scope.queueList = '[{"Loading Options","Loading"}]';
         var httpRequest = $http({
             method: 'GET',
             url: 'jtable.php?showProfiles',
@@ -250,7 +251,8 @@ function Dynamic($scope, $http, $timeout, pref) {
             url: 'jtable.php?'+options,
         }).success(function(data, status) {
             var retryIn = $scope.queueRefreshTime*1000;
-            if(data == '"try again soon"') retryIn = 500;
+            if(data == '"try again soon"')
+                retryIn = 500;
             else if(!data || !(data instanceof Array))
                 data = [{"subject":"None"}];
             else{
@@ -299,6 +301,43 @@ function Dynamic($scope, $http, $timeout, pref) {
         }
     }
 
+    $scope.flashScreen = function() {
+        var allTheThings = document.getElementsByClassName("ticketTable")[0].rows;
+        for(var i=0;i<allTheThings.length;i++) {
+            var e = allTheThings[i].style;
+            setTimeout(function(el){el.backgroundColor = 'yellow';},40*i,e);
+            setTimeout(function(el){el.backgroundColor = '';},75+40*i,e);
+        }
+
+        var derp = document.body.style;
+        derp.backgroundColor="yellow";
+        setTimeout(function(){derp.backgroundColor="black";},100);
+        setTimeout(function(){derp.backgroundColor="yellow";},150);
+        setTimeout(function(){derp.backgroundColor="indigo";},250);
+        setTimeout(function(){derp.backgroundColor="black";},300);
+        setTimeout(function(){derp.backgroundColor="yellow";},325);
+        setTimeout(function(){derp.backgroundColor="";},400);
+
+    }
+
+    $scope.getComment = function(t) {
+        //if it's already showing, then toggle it off
+        if(t.lastComment) return t.lastComment = "";
+
+        //prepopulate for feels
+        t.lastComment = "Fetching last comment";
+
+        var httpRequest = $http({
+            method: 'GET',
+            url: 'ctk/query.php?ticket='+t.ticket,
+            cache: true,
+        }).success(function(data, status){
+            t.lastComment = data.lastComment || data;
+        });
+    }
+}
+
+function Flash($scope, $timeout) {
     $scope.flashScreen = function() {
         var allTheThings = document.getElementsByClassName("ticketTable")[0].rows;
         for(var i=0;i<allTheThings.length;i++) {
