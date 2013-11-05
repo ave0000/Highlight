@@ -10,23 +10,16 @@ function readCookie(name) {
     return null;
 }
 
-//var app = angular.module('myApp', []);
-var app = angular.module('myApp', []);
+var app = angular.module('personalQueue', ['Highlight']);
 
-app.filter('noSpaces',function(){
-    return function(s){
-        if(!s || !s.replace) return s;
-        else return s.replace(/ /g,'');
-    }
-});
-
-function Dynamic($scope, $http, $timeout) {
+function Personal($scope, $http, $timeout, pref) {
     $scope.tickets = [];
     $scope.refreshTime = 300;
     //i got a cookie!
     $scope.sso = readCookie('COOKIE_last_login');
     $scope.statusType = 4;
     $scope.title = "Tickets assigned to "+$scope.sso;
+    pref.watch('statusType',$scope);
 
     $scope.changeRefresh = function() {
         //buffer modifications so we don't query on every keypress
@@ -34,9 +27,20 @@ function Dynamic($scope, $http, $timeout) {
         $scope.refreshTimeTimer = $timeout($scope.loadData, 1000);
     };
 
-    $scope.loadData = function() {
+    var processTickets = function(data) {
+            data.forEach(processTicket);
+            return data;
+    };
+    var processTicket = function(t) {
+        t.statuses = '';
+        if(t.linux) t.statuses += 'L';
+        if(t.windows) t.statuses += 'W';
+        if(t.critical) t.statuses += 'C';
+        return t;
+    };
 
-        $scope.jsonQuery =       [
+    $scope.loadData = function() {
+        var jsonQuery =       [
                 {
                     "class": "Ticket.Ticket", 
                     "load_arg": {
@@ -73,17 +77,17 @@ function Dynamic($scope, $http, $timeout) {
         //don't start more requests if we're still pending
         if($scope.loading == true) return false;
         $scope.loading = true;
-//        $timeout.cancel($scope.timeOutHolder);
+
         //this would be a good place to sanity check
         var options = 'queue='+$scope.queueListSelect;
         var httpRequest = $http({
             method: 'POST',
-            url: 'query.php',
-            data: $scope.jsonQuery,
+            url: 'ctk/query.php',
+            data: jsonQuery,
 
         }).success(function(data, status) {
             if(data && data[0] && data[0].result) {
-                $scope.tickets = $scope.processTickets(data[0].result);
+                $scope.tickets = processTickets(data[0].result);
             }else{
                 console.log('Did not receive ticket data');
                 console.log(data);
@@ -97,15 +101,5 @@ function Dynamic($scope, $http, $timeout) {
         });
     };
     
-    $scope.processTickets = function(data) {
-            data.forEach($scope.processTicket);
-            return data;
-    };
-    $scope.processTicket = function(t) {
-        t.statuses = '';
-        if(t.linux) t.statuses += 'L';
-        if(t.windows) t.statuses += 'W';
-        if(t.critical) t.statuses += 'C';
-        return t;
-    };
+
 }
