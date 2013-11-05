@@ -173,4 +173,20 @@ a.status:visited {
 	overflow-y:scroll;
 	resize:vertical;
 	white-space: pre-wrap;
+	margin:0;
+}
+
+.toggle {
+	cursor:pointer;
+	border-bottom: 5px solid transparent;  /* left arrow slant */
+	border-top: 5px solid transparent; /* right arrow slant */
+	border-left: 5px solid #2f2f2f; /* bottom, add background color here */
+	font-size: 0;
+	vertical-align: middle;
+}
+
+.toggleOn {
+	border-left: 5px solid transparent;
+	border-right: 5px solid transparent;
+	border-top: 5px solid red;
 }
