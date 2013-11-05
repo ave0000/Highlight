@@ -33,14 +33,14 @@ function saveTickets(db,profile,tickets) {
 			field = fields[i];
 			store[field] = t[field];
 		}
-		db.hmset('testticket:'+t.ticket,store);
+		db.hmset('ticket:'+t.ticket,store);
 		out.push(t.ticket);
 	}
 	return out;
 }
 
 function saveTicketList(db,profile,tickets) {
-	var name = 'testticketList:'+profile;
+	var name = 'ticketList:'+profile;
 	saveWithStamp(db,name,tickets);
 }
 
@@ -51,7 +51,7 @@ function saveSummary(db,profile,data) {
 		num++; //grep around in the dark
 	var latstr = 'latency_'+num;
 
-	var name = 'testsummary:'+profile+':'+latstr;
+	var name = 'summary:'+profile+':'+latstr;
 	var summary = {
 		profile: profile,
 		totalCount: sum.total_count,
@@ -113,7 +113,7 @@ function newSummary(d) {
 	var profile = data[1];
 	var latency = data[2];
 	if(!profile || !latency) return;
-	db.get('testticketList:'+profile+':timestamp',function(err,reply){
+	db.get('ticketList:'+profile+':timestamp',function(err,reply){
 		if(!isFresh(reply,30000)) {
 			console.log("get: %s, %s",profile,latency);
 			fetchSummary(profile,latency);
@@ -125,7 +125,7 @@ function newSummary(d) {
 }
 
 function popNext() {
-	db.blpop('wantNewSummaryTest', 0, function(err, data) {
+	db.blpop('wantNewSummary', 0, function(err, data) {
 		//console.log('processing: ' + data[1]);
 		newSummary(data[1]);
 	});

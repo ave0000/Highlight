@@ -1,6 +1,6 @@
 "use strict";
 var serverHost = 'highlight.res.rackspace.com';
-var redisHost = serverHost+':3001';
+var redisHost = serverHost+':3000';
 var app = angular.module('Highlight', []);
 
 //timceCalc runs a lot, needs to be efficient
@@ -77,7 +77,7 @@ function Summary($scope, $http, $timeout,pref) {
     function pubSocket() {
         jsonSocket = new WebSocket("ws://"+redisHost);
         jsonSocket.onopen = function() {
-            this.send(JSON.stringify(["PSUBSCRIBE", "testsummary:*"]));
+            this.send(JSON.stringify(["PSUBSCRIBE", "summary:*"]));
             console.log("WebSocket connected and subscribed to summary updates.");
         };
         jsonSocket.onmessage = function(message) {
@@ -128,7 +128,7 @@ function Summary($scope, $http, $timeout,pref) {
     }
     $scope.loadQueue = function(queue) {
         if(requestSocket.readyState != WebSocket.OPEN) return false;
-        var queueStr = 'testsummary:'+queue.profile+':latency_'+queue.latencyCount;
+        var queueStr = 'summary:'+queue.profile+':latency_'+queue.latencyCount;
         var age;
         var retryIn = $scope.refreshTime*1000;
 
@@ -141,7 +141,7 @@ function Summary($scope, $http, $timeout,pref) {
 
         if(age > retryIn) {
             //console.log(queue.profile+' data is '+age/1000+' seconds old, requesting new');
-            requestSocket.send(JSON.stringify(["rpush","wantNewSummaryTest",queueStr]));
+            requestSocket.send(JSON.stringify(["rpush","wantNewSummary",queueStr]));
         }else{
             var diff = retryIn - age; //reschedule
             //console.log(queue.profile+'too early for refresh: '+age+' trying again in '+diff);
