@@ -19,7 +19,10 @@ function Personal($scope, $http, $timeout, pref) {
     //i got a cookie!
     $scope.sso = readCookie('COOKIE_last_login');
     $scope.statusType = 4;
-    $scope.title = "Tickets assigned to "+$scope.sso;
+    //$scope.title = $scope.showingTickets+" Tickets assigned to "+$scope.sso;
+
+    $scope.columns =['Tickets','Age','Account','Subject','Status','OS'];
+
     pref.watch('statusType',$scope);
 
     $scope.changeRefresh = function() {
@@ -102,8 +105,11 @@ function Personal($scope, $http, $timeout, pref) {
             $scope.timeOutHolder = $timeout($scope.loadData, $scope.refreshTime*1000);
         });
     };
-    var sortAge = function(t) {return t.age;};
-    var sortPlatform = function(t) {return t.platform;};
+    var sortPlatform = function(t) {
+        var l = t.linux,w = t.windows;
+        if(l && w) return 'both';
+        if(l) return 'Linux';
+        if(w) return 'Windows'};
     var sortSev = function(t) {
         if(t.sev == 'Emergency') return 9000;
         else if(t.sev == 'Urgent') return 1000;
@@ -116,12 +122,18 @@ function Personal($scope, $http, $timeout, pref) {
         switch($scope.sortBy){
             case undefined:
             case '': 
-            case 'Age': return sortAge;
-            case 'Platform': return sortPlatform;
+            case 'Age': return 'age';
+            case 'Account': return 'account';
+            case 'Subject': return 'subject';
+            case 'Status': return 'status';
+            case 'OS': return sortPlatform;
             case 'Ticket': return sortSev;
             default: return $scope.sortBy;
         }
     }
-    
-
+    $scope.changeSort = function(column) {
+        if($scope.sortBy === column)
+                $scope.rev = !$scope.rev;
+        $scope.sortBy = column;
+    }    
 }

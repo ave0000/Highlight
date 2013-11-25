@@ -3,26 +3,44 @@
 <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <title>Queue Highlights</title>
+    <link rel="stylesheet" type="text/css" href="https://eafdbc63c97ce6bec9ef-b0a668e5876bef6fe25684caf71db405.ssl.cf1.rackcdn.com/v1-latest/canon.min.css">
     <script type='text/javascript' src="angular.js"></script>
     <script src="angtable.js"></script>
     <script src="ctk/ctk.js"></script>
     <link rel="stylesheet" type="text/css" href="css/queueview.css">
 </head>
-<body>
+<body class=rs-responsive>
+  <div class="rs-wrapper">
 
-<div ng-app="personalQueue">
-<div ng-controller="Personal">
-<span ng-bind="title">Queue Data</span>
-<label for=ticketType>Type:</label><select id=ticketType ng-model="statusType" ng-change="changeRefresh()">
+  <div class="rs-body">
+  <div class="rs-inner">
+    <div class="rs-container">
+
+<div ng-app="personalQueue" class="">
+<div ng-controller="Personal" class="rs-content rs-panel">
+<span ng-bind="title">{{showingTickets}} tickets assigned to {{sso}}</span>
+<label for=ticketType>of type</label><select id=ticketType ng-model="statusType" ng-change="changeRefresh()">
 		<option value=4>Active</option>
 		<option value=8>Open</option>
 	</select>
-<label for=timeout>Timeout (sec):</label><input id=timeout size=2 value="30" ng-model="refreshTime" ng-change="changeRefresh()">
+<label for=timeout>Refreshing in</label><input id=timeout size=2 value="30" ng-model="refreshTime" ng-change="changeRefresh()">
 <button ng-controller="Flash" ng-click="changeRefresh();flashScreen();">&#8623;</button>
 
 <span ng-show="loading">Loading</span>
 
-<table ng-init="loadData()" class=ticketTable>
+<table ng-init="loadData()"  class="rs-list-table rs-select-table ticketTable">
+    <col class="rs-table-status">
+    <col ng-repeat="c in columns" class="ticketColumn{{c}}">
+
+    <tr>
+        <th class="rs-table-status"></th>
+        <th ng-repeat="c in columns">
+            <a ng-click="changeSort(c)" class="rs-table-sort "
+                ng-class="{'rs-table-sort-desc': sortBy==c&&rev, 'rs-table-sort-asc': sortBy==c}">
+                <span class="rs-table-sort-text">{{c}}</span><span class="rs-table-sort-indicator"></span></a>
+        </th>
+    </tr>
+    <!--
     <col class="ticketColumnId">
     <col class="ticketColumnStatus">
     <col class="ticketColumnAccount">
@@ -48,14 +66,18 @@
         <th><a ng-click="sortBy = 'linux'; rev=!rev" 
             ng-class="{arrow_box: sortBy=='linux'}" 
             >OS</a></th>
-    </tr>
+    </tr>-->
     <tr ng-repeat="t in (showingTickets = (tickets|orderBy:getOrder():rev))">
-        <td><a target="_blank" href="https://core.rackspace.com/ticket/{{t.number}}" class="status {{t.sev|lowercase}}">
+        <td class="rs-table-status rs-table-status-ok" 
+            ng-class='{ 
+                "rs-table-status-warning": t.sev=="urgent",
+                "rs-table-status-error ": t.sev=="emergency"}'></td>
+        <td><a target="_blank" href="https://core.rackspace.com/ticket/{{t.number}}">
             {{t.number}}</a></td>
         <td ng-bind="t.age"></td>
         <td><a target="_blank" href="https://core.rackspace.com/account/{{t.account_id}}">{{t.account}}</a></td>
         <td ng-bind="t.subject"></td>
-        <td><span ng-class="t.status | noSpaces" class="status" ng-bind="t.status"></span></td>
+        <td><span ng-class="t.status | noSpaces" class="rs-status" ng-bind="t.status"></span></td>
         <td>
             <span ng-if="t.linux" class="os-linux">L</span>
             <span ng-if="t.windows" class="os-windows">W</span>
@@ -68,5 +90,7 @@
 
 <div>Submit <a target="_blank" href="https://github.rackspace.com/aver4919/Highlight/issues">requests/issues</a> or <a href="mailto:avery.scott@rackspace.com?Subject=Highlight">Email me</a></div>
 
+
+</div></div></div></div>
 </body>
 </html>

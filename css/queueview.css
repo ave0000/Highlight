@@ -1,41 +1,9 @@
-body {
-    font-size:0.875em ;
-    font-family:"Free Sans",Helvetica,sans-serif;
-    margin:0;
-}
-
-th {
-    background: #a8a8a8;
-}
-tr {
-    height: 28px;
-    margin:0;padding:0;
-}
-tr:nth-child(odd)       { background-color:#eee; }
-tr:nth-child(even)      { background-color:#fff; }
-tr:hover {
-    background-color: #afafaf;
-}
-td {
-    border-bottom:1px solid;
-    border-color: #afafaf;
-}
-table {
-    border-spacing: 0;
-    width:100%;
-}
-
 a {text-decoration:none;}
 a:hover {text-decoration:underline;}
 
-input {
-	font-size: 14px;
-	border: 1px solid #777;
-	box-shadow: inset 0 1px 2px rgba(0,0,0,0.2),0 1px 1px 0 rgba(255,255,255,0.3);
-	border-radius: 4px;
-	background-clip: padding-box;
-} 
-
+label {
+	display:inline !important;
+}
 
 .statTable {
 	font-size: 0.8em;
@@ -56,9 +24,7 @@ input {
 }
 
 /*statuses*/
-.green,.standard,.normal {
-    background-color:#91B386;
-}
+
 .yellow,.urgent,.high {
     font-weight: bold;
     background-color:#F5E856;
@@ -72,12 +38,6 @@ input {
 	font-size: 0.85em;
 	padding: 1px 2px 3px;
 	border-radius:4px;
-}
-a.status {
-	color:black;
-}
-a.status:visited {
-	color:gray;
 }
 
 /* All statuses available in Enterprise Services (All Teams) */
@@ -106,24 +66,14 @@ a.status:visited {
 .SubTicketActivity {background: #5599EF;}
 .WaitingonCloud {background: rgb(204, 204, 255);}
 
-
-.ticketTable th a {
-	padding: 0.25em;
-	display: block;
-	border: 2px solid rgba(0,0,0,0);
-}
-.ticketTable tr {
-        transition: background 0.08s ease-out;
-}
-.ticketTable td{height:1.5em;}
-
-.ticketColumnId {width:7em;}
-.ticketColumnAge{width:4em;}
-.ticketColumnScore{width:4.5em;}
-.ticketColumnAccount{width:15em;}
+/*.ticketColumn {width:auto;}*/
+.ticketColumnTickets {width:8.5em;}
+.ticketColumnAge{width:5em;}
+.ticketColumnScore{width:6em;}
+.ticketColumnAccount{width:14.25em;}
 .ticketColumnStatus{width:13em;}
 .ticketColumnTeam{width:6em;}
-.ticketColumnPlatforms{width:3em;}
+.ticketColumnOS{width:4.5em;}
 
 .ticketTable{table-layout: fixed;}
 
@@ -137,46 +87,6 @@ a.status:visited {
 	width:16px;height:22px;
 	color:rgba(0,0,0,0);
 	display:inline-block;
-}
-
-#search {
-	width:6em;
-	transition: width .25s ease-in-out;
-}
-#search:hover, #search:focus {
-	width:16em;
-}
-
-/* http://cssarrowplease.com/ */
-.arrow_box {
-	position: relative;
-	background: #505050;
-	color: white;
-	border: 2px solid  rgba(196, 0, 34, 255) !important;
-}
-.arrow_box:after, .arrow_box:before {
-	top: 100%;
-	border: solid transparent;
-	content: " ";
-	height: 0;
-	width: 0;
-	position: absolute;
-	pointer-events: none;
-}
-
-.arrow_box:after {
-	border-color: rgba(66, 66, 66, 0);
-	border-top-color: #505050;
-	border-width: 7px;
-	left: 50%;
-	margin-left: -7px;
-}
-.arrow_box:before {
-	border-color: rgba(196, 0, 34, 0);
-	border-top-color: #C40022;
-	border-width: 10px;
-	left: 50%;
-	margin-left: -10px;
 }
 
 .loading {
@@ -207,4 +117,16 @@ a.status:visited {
 	border-left: 5px solid transparent;
 	border-right: 5px solid transparent;
 	border-top: 5px solid red;
+}
+
+.ticketTable tr td {
+	 overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+
+/* directly overriding canon */
+.rs-status {
+	color: black;
 }

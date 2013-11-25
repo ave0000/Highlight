@@ -40,7 +40,7 @@ app.service('pref',function($http){
 
     //set a single preference value
     this.save = function(key,val){
-        if(pref.cache[key]!==undefined && pref.cache[key] == val) return true;
+        if(pref.cache[key]!==undefined && pref.cache[key] === val) return true;
         console.log('saving '+key+' as:"'+val+'"');
         //maybe these should be buffered into blocks...
         var prefs = {last: Date.now()};
@@ -59,7 +59,7 @@ app.service('pref',function($http){
                     pref.cache[key] = $scope[key] = response.data[key];
             });
         $scope.$watch(key, function(newval, oldval) {
-            if (newval!=undefined && newval !== oldval)
+            if (newval!==undefined && newval !== oldval)
                 pref.save(key,newval);
         });
     }
@@ -179,6 +179,7 @@ function Dynamic($scope, $http, $timeout, pref) {
     $scope.reverse = true;
     $scope.feedbacks = [];
     $scope.queueList = [];
+    $scope.columns = ['Tickets','Age','Score','Account','Subject','Status','OS'];
 
     pref.watch('queueListSelect',$scope);
     //pref.watch('filterListSelect',$scope);
@@ -220,8 +221,9 @@ function Dynamic($scope, $http, $timeout, pref) {
     }
 
     var addTicket = function(t) {
-        if(!t.sev) 
+        if(!t.sev || t.sev == "normal") 
             t.sev = "Standard";
+        if(!t.aname) t.aname = t.account;
         if(t.iscloud == "1") {
             var ticket = t.ticket.replace('ZEN_','');
             t.ticketUrl='https://rackspacecloud.zendesk.com/tickets/'+ticket;
@@ -294,11 +296,19 @@ function Dynamic($scope, $http, $timeout, pref) {
             case undefined:
             case '': 
             case 'Score': return sortScore;
+            case 'Subject': return 'subject';
+            case 'Account': return 'aname';
+            case 'Status': return 'status';
             case 'Age': return sortAge;
-            case 'Platform': return sortPlatform;
+            case 'OS': return sortPlatform;
             case 'Ticket': return sortSev;
             default: return $scope.predicate;
         }
+    }
+    $scope.changeSort = function(column) {
+        if($scope.predicate === column)
+                $scope.reverse = !$scope.reverse;
+        $scope.predicate = column;
     }
 
     $scope.getComment = function(t) {
