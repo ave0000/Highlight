@@ -2,7 +2,7 @@ var redis = require('redis');
 require('console-ten').init(console);
 
 var WebSocketServer = require('ws').Server
-  , wss = new WebSocketServer({port: 3000});
+  , wss = new WebSocketServer({port: 3001});
 
 wss.on('connection', function(ws) {try{
     var clientHost = ws.upgradeReq.headers['x-forwarded-for'] || ws.upgradeReq.connection.remoteAddress;
@@ -13,7 +13,7 @@ wss.on('connection', function(ws) {try{
     db.on("error", function(err) {
       var msg = clientHost+"Error connecting to redis";
       console.error(msg, err);
-      ws.close(msg,err);
+      ws.close(msg);
     });
     ws.on('message', function(message) {
         var parsed;
@@ -66,7 +66,8 @@ function stats(ws,wss,db) {
         clientHosts.push(c.upgradeReq.headers['x-forwarded-for'] || c.upgradeReq.connection.remoteAddress);
         
     }
-    ws.send(JSON.stringify(clientHosts));
+    var data = { clients: clientHosts, count: clientHosts.length };
+    ws.send(JSON.stringify(data));
     //ws.send(JSON.stringify(ws,replacer,2));
     //ws.send('=== Server Level ===');
     //ws.send(JSON.stringify(wss.clients,replacer,2));

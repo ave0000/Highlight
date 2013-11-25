@@ -31,7 +31,9 @@ function saveTickets(db,profile,tickets) {
 		store = {};
 		for(var i=0;i<fields.length;i++){
 			field = fields[i];
-			store[field] = t[field];
+			//only store good data
+			if(t[field] && t[field] !== "null")
+					store[field] = t[field];
 		}
 		db.hmset('ticket:'+t.ticket,store);
 		out.push(t.ticket);
@@ -108,25 +110,25 @@ function isFresh(timeStamp,limit) {
 }
 
 function newSummary(d) {
-	if(typeof(d)==='undefined') return;
+	if(typeof(d)==='undefined') return process.nextTick(popNext);;
 	var data = d.split(':');
 	var profile = data[1];
 	var latency = data[2];
-	if(!profile || !latency) return;
+	if(!profile || !latency) return process.nextTick(popNext);;
 	db.get('ticketList:'+profile+':timestamp',function(err,reply){
 		if(!isFresh(reply,30000)) {
 			console.log("get: %s, %s",profile,latency);
 			fetchSummary(profile,latency);
 		}else{
 			console.log("skip: %s",profile);
-			popNext();
+			process.nextTick(popNext);
 		}		
 	});
 }
 
 function popNext() {
 	db.blpop('wantNewSummary', 0, function(err, data) {
-		//console.log('processing: ' + data[1]);
+		console.log('processing: ' + data[1]);
 		newSummary(data[1]);
 	});
 }
