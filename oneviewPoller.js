@@ -128,7 +128,7 @@ function newSummary(d) {
 
 function popNext() {
 	db.blpop('wantNewSummary', 0, function(err, data) {
-		console.log('processing: ' + data[1]);
+		//console.log('processing: ' + data[1]);
 		newSummary(data[1]);
 	});
 }
