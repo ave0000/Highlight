@@ -473,13 +473,34 @@ $qs = array(
                         'filter_out' => array('team' => '/(ENTZ-8MIX|RPCZ-3MIX|ENTZ-2MIX|INT).*/i'),
                 ),
 
+	"Enterprise All - Watchlist" =>
+                array(
+                      	//'queues' => array('corpus_ua', 'cloud-hybrid-corporate', 'es_ua', 'cloud-hybrid-enterprise'),
+                        'queues' => array('corpus_ua', 'cloud-hybrid-enterprise', 'esah_ua', 'cloud-hybrid-corporate', 'intensive_aric_ua', 'intensive_mon_ua'),
+                        'filter_out' => array('team' => '/(ENTZ-8MIX|RPCZ-3MIX|ENTZ-2MIX|INT).*/i', 'OnWatch' => '/0/'),
+                ),
+
+
         "Enterprise All (Linux)" =>
                 array(
 			'queues' => array('corpus_ua', 'cloud-hybrid-enterprise', 'esah_ua', 'cloud-hybrid-corporate', 'intensive_aric_ua', 'intensive_mon_ua'),
                        	'filter_out' => array(
 					'tech' => '/windows/i',
 					'platform' => '/windows/i',
-					'team' => '/(ENTZ-8MIX|RPCZ-3MIX|ENTZ-2MIX|INT).*/i'
+					'team' => '/(ENTZ-8MIX|RPCZ-3MIX|ENTZ-2MIX|INT).*/i',
+					'subject' => '/^ALERT:OPSMGR:.*/'
+                               	),
+
+                ),
+
+        "Enterprise All (Linux) Testing" =>
+                array(
+                      	'queues' => array('corpus_ua', 'cloud-hybrid-enterprise', 'esah_ua', 'cloud-hybrid-corporate', 'intensive_aric_ua', 'intensive_mon_ua'),
+                        'filter_out' => array(
+                                       	'tech' => '/windows/i',
+                                       	'platform' => '/windows/i',
+                                        'team' => '/(ENTZ-8MIX|RPCZ-3MIX|ENTZ-2MIX|INT).*/i',
+                                        'subject' => '/^ALERT:OPSMGR:.*/'
                                	),
 
                 ),
@@ -605,7 +626,8 @@ $qs = array(
 			//'filter_in' => array('team' => '/^(ENT.*|$)/i'),
                         'filter_out' => array(
 				'tech' => '/windows/i', 'platform' => '/windows/i',
-				'team' => '/(ENTE-2LIN|ENTE-3WIN|ENTE-4MIX|ENTE-6MIX|ENTF-1MIX|ENTF-2MIX|ENTF-3MIX|ENTF-4MIX|ENTF-5MIX|ENTW-1WIN|ENTW-3MIX|ENTW-4LIN|ENTW-7MIX|ENTW-8MC|ENTZ-1MIX|ENTZ-7MIX|ENTZ-8MIX|RPCZ-3MIX|ENTZ-2MIX|Int.*|ENT.-0...$|LATM.*)/'
+				'team' => '/(ENTE-2LIN|ENTE-3WIN|ENTE-4MIX|ENTE-6MIX|ENTF-1MIX|ENTF-2MIX|ENTF-3MIX|ENTF-4MIX|ENTF-5MIX|ENTW-1WIN|ENTW-3MIX|ENTW-4LIN|ENTW-7MIX|ENTW-8MC|ENTZ-1MIX|ENTZ-7MIX|ENTZ-8MIX|RPCZ-3MIX|ENTZ-2MIX|Int.*|ENT.-0...$|LATM.*)/',
+				'subject' => '/^ALERT:OPSMGR:.*/'
 			)
                 ),
 
@@ -713,6 +735,7 @@ $qs = array(
                       	'queues' => array('corpus_ua', 'cloud-hybrid-enterprise', 'esah_ua', 'cloud-hybrid-corporate', 'intensive_aric_ua', 'intensive_mon_ua'),
 			'filter_in' => array('team' => '/^(ENT|UT).*/i'),
                         'filter_out' => array(
+				'tech' => '/linux/i', 'platform' => '/linux/i',
                                 'team' => '/(ENTE-1WIN|ENTE-2LIN|ENTE-3WIN|ENTE-4MIX|ENTE-5WIN|ENTE-7LIN|ENTE-8WIN|ENTF-1MIX|ENTF-2MIX|ENTF-3MIX|ENTF-4MIX|ENTW-1WIN|ENTW-2LIN|ENTW-4LIN|ENTW-5WIN|ENTW-6WIN|ENTW-7MIX|ENTW-8MC|ENTZ-1MIX|ENTZ-7MIX|ENTZ-8MIX|RPCZ-3MIX|ENTZ-2MIX|Int.*|ENT.-0...$|LATM.*)/'
                         )
                 ),
@@ -733,6 +756,16 @@ $qs = array(
 			'filter_in' => array('team' => '/^ENT.*/i'),
                         'filter_out' => array(
                                	'tech' => '/windows/i', 'platform' => '/windows/i',
+                               	'team' => '/(ENTE-1WIN|ENTE-2LIN|ENTE-3WIN|ENTE-4MIX|ENTE-5WIN|ENTE-7LIN|ENTE-8WIN|ENTF-1MIX|ENTF-2MIX|ENTF-3MIX|ENTF-4MIX|ENTW-1WIN|ENTW-2LIN|ENTW-4LIN|ENTW-5WIN|ENTW-6WIN|ENTW-7MIX|ENTW-8MC|ENTZ-1MIX|ENTZ-7MIX|ENTZ-8MIX|RPCZ-3MIX|ENTZ-2MIX|Int.*|ENT.-0...$|LATM.*)/'
+	                )
+                ),
+
+	"Team V" =>
+                array(
+                      	'queues' => array('corpus_ua', 'cloud-hybrid-enterprise', 'esah_ua', 'cloud-hybrid-corporate', 'intensive_aric_ua', 'intensive_mon_ua'),
+                        'filter_in' => array('team' => '/^ENT.*/i'),
+                        'filter_out' => array(
+                                'tech' => '/windows/i', 'platform' => '/windows/i',
                                	'team' => '/(ENTE-1WIN|ENTE-2LIN|ENTE-3WIN|ENTE-4MIX|ENTE-5WIN|ENTE-7LIN|ENTE-8WIN|ENTF-1MIX|ENTF-2MIX|ENTF-3MIX|ENTF-4MIX|ENTW-1WIN|ENTW-2LIN|ENTW-4LIN|ENTW-5WIN|ENTW-6WIN|ENTW-7MIX|ENTW-8MC|ENTZ-1MIX|ENTZ-7MIX|ENTZ-8MIX|RPCZ-3MIX|ENTZ-2MIX|Int.*|ENT.-0...$|LATM.*)/'
 	                )
                 ),
@@ -769,6 +802,56 @@ $qs = array(
 			'filter_in' => array(
 				'team'	=>	'/^ENT.-0...$/'
 			),
+                ),
+	"Storage - DAS" =>
+                array(
+                      	'queues' => array('storage_das'),
+                        'filter_out' => array(),
+                ),
+        "Storage - NAS" =>
+               	array(
+                       	'queues' => array('storage_nas'),
+                       	'filter_out' => array(),
+                ),
+	"Storage - SAN" =>
+                array(
+                        'queues' => array('storage_san'),
+                        'filter_out' => array('status'=>'/.*Scheduled.*/'),
+                ),
+	"DBA - MySQL" =>
+                array(
+                      	'queues' => array('dba_mysql_ua'),
+                       	'filter_out' => array(),
+                ),
+	"DBA - MSSQL" =>
+               	array(
+                      	'queues' => array('dba_mssql_ua'),
+                       	'filter_out' => array(),
+                ),
+	"DBA - Oracle" =>
+                array(
+                      	'queues' => array('dba_oracle_ua'),
+                        'filter_out' => array(),
+	        ),
+	"Critical Sites" =>
+                array(
+                      	'queues' => array('critical_sites'),
+                        'filter_out' => array(),
+	        ),
+	"Virtualization" =>
+                array(
+                      	'queues' => array('virt'),
+                        'filter_out' => array(),
+	        ),
+	"Enterprise NetSec" =>
+                array(
+                       	'queues' => array('netsec_ua'),
+                       	'filter_out' => array(),
+                ),
+        "Segment Support" =>
+                array(
+                      	'queues' => array('segment_support'),
+                        'filter_out' =>	array(),
                 ),
 
 );

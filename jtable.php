@@ -48,7 +48,7 @@ function getProfileList(){
     include('profile_list.inc');
     $out = array();
     $profiles = array_keys($qs);
-    $excludes = array('Corp','Strat','Priority');
+    $excludes = array('Corp','Strat','Priority','Testing');
     $e = count($excludes);
 
     //Rewrite me with a better method of filtering
@@ -74,8 +74,16 @@ function getProfileListShort() {
         //'Team'=>'T:',
         'Linux'=>'L',
         'Windows'=>'W',
+	'Team '=>'',
+	'Only'=>'',
     	'Implementation'=>'Imp',
-    	'Latin America'=>'LATAM'
+    	'Latin America'=>'LATAM',
+	'Critical Sites'=>'CAS',
+	'DBA - '=>'',
+	'Storage - '=>'',
+	'Virtualization'=>'Virt',
+	'Segment '=>'Seg',
+	'Support'=>'Sup'
     );
     $profiles = getProfileList();
 
@@ -127,9 +135,9 @@ function processTest($q,$profile) {
             $t->age_seconds = $age;
         $t->score = getScore($t,$profile);
         $t->subject = substr($t->subject, 0, 100);
-        if(!property_exists($t,'aname') || $t->aname == false)
+        if(!property_exists($t,'aname') || $t->aname == false || $t->aname == 'null')
             $t->aname = $t->account;
-        $t->aname = substr($t->aname, 0,30);
+        //$t->aname = substr($t->aname, 0,30);
         $out[] = $t;
     }
     return $out;
