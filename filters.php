@@ -109,6 +109,7 @@ function accountFind($queue,$value) {
 function severityFilter($q,$type) {
     if(!is_array($q)) return $q;
     //$type = explode('|',$type);
+    $out = array();
     foreach($q as $t){
         if(stristr($t->sev, $type) !== false)
             $out[] = $t;
