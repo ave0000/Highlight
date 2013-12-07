@@ -89,7 +89,7 @@ function getProfileListShort() {
 
     foreach($profiles as $q => $name){
             $name = str_replace(array_keys($trims),$trims,$name);
-            $profiles[$q] = $name;
+            $profiles[$q] = trim($name);
     }
     return $profiles;
 }
