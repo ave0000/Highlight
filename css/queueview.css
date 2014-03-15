@@ -1,5 +1,6 @@
 a {text-decoration:none;}
 a:hover {text-decoration:underline;}
+a:visited {color:#800080;}
 
 label {
 	display:inline !important;
@@ -42,8 +43,8 @@ label {
 
 /* All statuses available in Enterprise Services (All Teams) */
 .FeedbackReceived {background: #00FF88;}
-.New, 
-.Open {background: #33FF33;}
+.New, .new,
+.Open, .open {background: #33FF33;}
 .ConfirmSolved {background:#EFEFEF;}
 .DailyUpdate, 
 .MassTickets,
