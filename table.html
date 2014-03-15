@@ -60,18 +60,21 @@
     <col ng-repeat="c in columns" class="ticketColumn{{c}}">
 
     <tr>
-        <th class="rs-table-status"></th>
+       <th class="rs-table-status"></th>
        <th ng-repeat="c in columns">
             <a ng-click="changeSort(c)" class="rs-table-sort "
                 ng-class="{'rs-table-sort-desc': predicate==c&&reverse, 'rs-table-sort-asc': predicate==c}">
-                <span class="rs-table-sort-text">{{c}}</span><span class="rs-table-sort-indicator"></span></a>
+                <span class="rs-table-sort-text">{{c}}</span>
+		<span ng-if="c == 'Tickets'">{{showing.Tickets.length}}</span>
+		<span class="rs-table-sort-indicator"></span>
+	    </a>
         </th>
     </tr>
-    <tr ng-repeat="t in (showingTickets = (feedbacks |filter:{$:filterSearch} |orderBy:getOrder():reverse))">
+    <tr ng-repeat="t in (showing.Tickets = (feedbacks |filter:{$:filterSearch} |orderBy:getOrder():reverse))">
         <td class="rs-table-status rs-table-status-ok" 
             ng-class='{ 
-                "rs-table-status-warning": t.sev=="urgent",
-                "rs-table-status-error ": t.sev=="emergency"}'></td>
+                "rs-table-status-warning": t.sev.toLowerCase()=="urgent",
+                "rs-table-status-error ": t.sev.toLowerCase()=="emergency" }'></td>
         <td><a href="{{t.ticketUrl}}">{{t.ticket}}</a></td>
         <td ng-bind="t.age_seconds | timeCalc"></td>
         <td ng-bind="t.score"></td>
@@ -83,8 +86,8 @@
         </td>
         <td><span ng-bind="t.status" ng-class="t.status | noSpaces" class="rs-status"></span></td>
         <td>
-            <span ng-if="t.platform == 'linux' || t.platform == 'both'" class="os-linux">L</span>
-            <span ng-if="t.platform == 'windows' || t.platform == 'both'" class="os-windows">W</span>
+            <span ng-if="t.linux" class="os-linux">L</span>
+            <span ng-if="t.windows" class="os-windows">W</span>
         </td>
     </tr>
 </table>
