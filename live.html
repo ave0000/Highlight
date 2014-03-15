@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Queue Highlights</title>
+    <link rel="stylesheet" type="text/css" href="https://eafdbc63c97ce6bec9ef-b0a668e5876bef6fe25684caf71db405.ssl.cf1.rackcdn.com/v1-latest/canon.min.css">
+    <link rel="stylesheet" type="text/css" href="css/queueview.css">
+
+    <!--<script type='text/javascript' src="angular.js"></script>-->
+    <script type='text/javascript' src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.0-beta.1/angular.min.js"></script>
+    <script language="javascript">
+"use strict";
+var serverHost = window.location.host
+var redisHost = serverHost+':3000';
+var app = angular.module('Highlight', []);
+
+//timceCalc runs a lot, needs to be efficient
+//jsperfs indicate '+'' is good for concats
+//some indicate that |0 is best for rounding
+app.filter('timeCalc', function() {
+    return function(secs) {
+        if(secs % 1 !== 0) return '?';
+        var mins = (secs/60|0)%60;
+        return (secs/3600 |0) + (mins < 10 ? ':0' : ':') + mins;
+    }
+});
+app.filter('timeSince', function(){
+    return function(intime) {
+        var secs = (Date.now() - intime)/1000|0;
+        var mins = (secs/60|0)%60;
+        return (secs/3600 |0) + (mins < 10 ? ':0' : ':') + mins;
+    }
+});
+
+function baseScore(t) {
+    var base_score = 0;
+    var feedBack = 'Feedback Received';
+
+    var sub = t['subject'];
+    var cat = t['category'];
+
+    // customer feedback
+    if(/.*ALERT:Rackwatch.*All.*Services.*/i.test(sub))
+        base_score = 1200;
+    else if(/ALERT:.*SiteScope.*/i.test(sub))
+        base_score = 800;
+    else if (/Monitoring Alert .*/.test(t.subject))
+        base_score = 700
+    else if(/.*customer_initiated.*/i.test(cat))
+        base_score = 600;
+    else if(t.status == feedBack)
+        base_score = 600;
+    return base_score
+}
+
+function ticketScore(t) {
+    if (/^SCHLD \d+.*/.test(t.subject))
+        return '-';
+
+    if(t.base_score === undefined)
+        t.base_score = baseScore(t);
+
+    var points = 2.25;
+    if(t.severity =='emergency')
+        points = 35;
+    else if(t.severity =='urgent')
+        points = 9;
+
+    // score is primarily based on ticket age ...
+    var age = (Date.now() - t.intime) / 1000 / 60;
+
+    //data collected, time to calc
+    var score = t.base_score + (2 * age * points);
+    //if($profile)
+    //    $score *= getScoreModifier($t,$profile);
+
+    return score |0 ;
+}
+
+app.filter('scoreCalc',function(){
+    return ticketScore;
+});
+
+
+app.filter('summaryColor',function(){
+    return function(secs) {
+        if(secs % 1 !== 0 || secs < 10800)
+            return 'green';
+        else if (secs < 21600)
+            return 'yellow';
+        else
+            return 'red';
+    }
+});
+
+app.filter('noSpaces',function(){
+    return function(s){
+        if(!s || !s.replace) return s;
+        else return s.replace(/ /g,'');
+    }
+});
+
+
+//service to handle saving and loading preferences
+app.service('pref',function($http){
+    var pref = this;//so i can call myself
+    var prefurl='jtable.php';
+    this.cache = new Array();
+
+    //set a single preference value
+    this.save = function(key,val){
+        if(pref.cache[key]!==undefined && pref.cache[key] === val) return true;
+        console.log('saving '+key+' as:"'+val+'"');
+        //maybe these should be buffered into blocks...
+        var prefs = {last: Date.now()};
+        prefs[key] = val;
+        $http({
+            method: 'POST',
+            url: prefurl+'?userPrefset',
+            data: prefs,
+        });
+    }
+    //watch a variable in the given scope for changes
+    this.watch = function(key,$scope) {
+        $http.get(prefurl+'?userPrefs='+key)
+            .then(function (response) {
+                if(response.data !==undefined && response.data[key] !== undefined)
+                    pref.cache[key] = $scope[key] = response.data[key];
+            });
+        $scope.$watch(key, function(newval, oldval) {
+            if (newval!==undefined && newval !== oldval)
+                pref.save(key,newval);
+        });
+    }
+});
+
+
+var requestSocket;
+function Summary($scope) {
+
+}
+
+function Dynamic($scope, $http, $timeout, pref) {
+    $scope.queueRefreshTime = 30;
+    $scope.predicate = 'Score';
+    $scope.reverse = true;
+    $scope.feedbacks = [];
+    $scope.queueList = [];
+    $scope.columns = ['Tickets','Age','Score','Account','Subject','Status','OS'];
+
+    pref.watch('queueListSelect',$scope);
+    pref.watch('predicate',$scope);
+    pref.watch('reverse',$scope);
+
+    //refresh the queue when any of these are changed (blindly, but buffered)
+    $scope.$watch('queueListSelect + queueRefreshTime + filterListSelect', 
+        function(){$scope.changeRefresh();} );
+
+    var lastLen;
+    $scope.$watch('showing.Tickets.length',function(len) {
+        if(len != undefined && len != lastLen) {
+            lastLen = len;
+            window.parent.document.title = len + ' - Highlight';
+        }
+    });
+
+    var jsonSocket;
+    function pubSocket() {
+        //if(jsonSocket !== undefined && jsonSocket.close)
+        //    return jsonSocket.close();
+        jsonSocket = new WebSocket("ws://"+redisHost);
+
+        var subscribedTo = "ticketList:"+$scope.queueListSelect;
+        jsonSocket.onopen = function() {
+            this.send(JSON.stringify(["GET", subscribedTo]));
+            this.send(JSON.stringify(["PSUBSCRIBE", subscribedTo]));
+            console.log("WebSocket connected and subscribed to "+subscribedTo+" updates.");
+        };
+        jsonSocket.onmessage = function(message) {
+            if(this !== jsonSocket) { //race condition
+                this.close();
+            }
+            var data = message.data;
+            //sanity check and then apply the message
+            try{var sub = JSON.parse(data);}
+            catch(e) {/*cool story*/}
+
+            if(sub) {
+                gotTickets(sub);
+            }
+            else
+                console.log("received:", data);
+        };
+        jsonSocket.onclose = function(a) {
+            console.log(a);
+            if(this === jsonSocket)
+                setTimeout(function(){pubSocket()},4000);
+        }   
+    }
+    pubSocket();
+
+    var getQueueList = function() {
+        var httpRequest = $http({
+            method: 'GET',
+            url: 'jtable.php?showProfiles',
+            cache: true,
+        }).success(function(data, status){$scope.queueList = data;});
+    }
+    getQueueList();
+
+    $scope.changeRefresh = function() {//modifications buffer
+        $timeout.cancel($scope.refreshTimeTimer);
+        $scope.refreshTimeTimer = $timeout(pubSocket,400);
+    }
+
+    //here's a good place for any necessary one-time doctoring of fields
+    $scope.addTicket = function(t) {
+        if(!t.severity || t.severity == "normal") 
+            t.severity = "standard";
+        else
+            t.severity = t.severity.toLowerCase();
+        t.accountName = t.account_name;
+        t.ticket = t.number;
+        t.ticketUrl=t.ticket_link+t.ticket;
+        t.accountUrl=t.account_link+t.account_number;
+
+        //timezone issue i guess?
+        t.intime = Date.parse(t.intime) + 18000000;
+
+        $scope.feedbacks.push(t);
+    }
+    var addTickets = function(tickets) {
+        //most of the code in this fn is to split the request into chunks
+
+        function response(response) {
+            if(response.data !==undefined && response.data.tickets !== undefined)
+                response.data.tickets.forEach($scope.addTicket);
+            else
+                console.log(respose);
+        }
+        var slice, req = "";
+        var url = "/api/v1/tickets?ticket_numbers="
+        var atATime = 10;
+        var i = 0;
+        var n = tickets.length;
+
+        while (i < n) {
+            slice = tickets.slice(i, i += atATime);
+            req = slice.join("&ticket_numbers=");
+            $http.get(url+req).then(response);
+        }
+        
+    }
+
+    var gotTickets = function(tickets) {
+        var localList = [];//build an index
+        var old = $scope.feedbacks;
+        var len = old.length;
+        var newt = [];
+        var expiredt = [];
+        tickets.forEach(function(t) {
+            localList[t] = true;
+            var i = len;
+            while(i--)
+                if(old[i].ticket == t) {
+                    return //angular.extend(old[i],tobj);
+                }
+            newt.push(t)
+        });
+        while(len--){//if it doesn't exist in the list,
+            if(!localList[old[len].ticket]){
+                expiredt.push(old[len].ticket);
+                old.splice(len,1);//remove it.
+            }
+        }
+        if(newt.length > 0) {
+            console.log("new " + newt);
+            addTickets(newt);
+        }
+        if(expiredt.length > 0)
+            console.log("expired " + expiredt);
+    }
+
+    $scope.loadFeedback = function() {/*
+        $timeout.cancel($scope.timeOutHolder);
+        var options = 'queue';
+        if($scope.queueListSelect != undefined)
+            options = options+'='+encodeURIComponent($scope.queueListSelect);
+        if($scope.filterListSelect != undefined) {
+            options = options+'&filter='+encodeURIComponent($scope.filterListSelect.name);
+            // TODO: if filterListSelect option is different than filterList option then ...
+            if($scope.filterListSelect.parameters != undefined){
+                options += '&filterOpt='+encodeURIComponent($scope.filterListSelect.parameters[0].value);
+            }
+        }
+        $scope.gettingFeedback = true;
+        var httpRequest = $http({
+            method: 'GET',
+            url: 'jtable.php?'+options,
+        }).success(function(data, status) {
+            var retryIn = $scope.queueRefreshTime*1000;
+            if(data == '"try again soon"')
+                retryIn = 500;
+            else if(!data || !(data instanceof Array))
+                data = [{"subject":"None"}];
+            else{
+                var localList = [];//build an index
+                var old = $scope.feedbacks;
+                var len = old.length;
+                data.forEach(function(t) {
+                    localList[t.ticket] = true;
+                    var i = len;
+                    while(i--)
+                        if(old[i].ticket == t.ticket)
+                            return angular.extend(old[i],t);
+                    old.push(addTicket(t));
+                });
+                while(len--){//if it doesn't exist in the list,
+                    if(!localList[old[len].ticket]){
+                        old.splice(len,1);//remove it.
+                    }
+                }                
+                $scope.gettingFeedback = false;
+            }
+            $scope.timeOutHolder = $timeout($scope.loadFeedback, retryIn);
+        });*/
+    };
+
+    var sortSev = function(t) {
+        if(t.severity == 'emergency') return 9000;
+        else if(t.severity == 'urgent') return 1000;
+        else return 0;
+    };
+
+    //some columns don't sort right
+    //override them here
+    $scope.getOrder = function() {
+        switch($scope.predicate){
+            case undefined:
+            case '': 
+            case 'Score': return ticketScore;
+            case 'Subject': return 'subject';
+            case 'Account': return 'aname';
+            case 'Status': return 'status';
+            //case 'Age': return sortAge;
+            case 'Age': return 'intime';
+            case 'OS': return 'platform';
+            case 'Tickets': return sortSev;
+            default: return $scope.predicate;
+        }
+    }
+    $scope.changeSort = function(column) {
+        if($scope.predicate === column)
+                $scope.reverse = !$scope.reverse;
+        $scope.predicate = column;
+    }
+
+    $scope.getComment = function(t) {
+        //if it's already showing, then toggle it off
+        if(t.lastComment) return t.lastComment = "";
+
+        //prepopulate for feels
+        t.lastComment = "Fetching last comment";
+
+        var httpRequest = $http({
+            method: 'GET',
+            url: 'ctk/query.php?ticket='+t.ticket,
+            cache: true,
+        }).success(function(data, status){
+            console.log(data.lastComment || data);
+            t.lastComment = data.lastComment || data;
+        });
+    }
+}
+
+function Flash($scope, $timeout) {
+    $scope.flashScreen = function() {
+        var allTheThings = document.getElementsByClassName("ticketTable")[0].rows;
+        for(var i=0;i<allTheThings.length;i++) {
+            var e = allTheThings[i].style;
+            setTimeout(function(el){el.backgroundColor = 'yellow';},40*i,e);
+            setTimeout(function(el){el.backgroundColor = '';},75+40*i,e);
+        }
+
+        var derp = document.body.style;
+        derp.backgroundColor="yellow";
+        setTimeout(function(){derp.backgroundColor="black";},100);
+        setTimeout(function(){derp.backgroundColor="yellow";},150);
+        setTimeout(function(){derp.backgroundColor="indigo";},250);
+        setTimeout(function(){derp.backgroundColor="black";},300);
+        setTimeout(function(){derp.backgroundColor="yellow";},325);
+        setTimeout(function(){derp.backgroundColor="";},400);
+
+    }
+}
+
+
+    </script>
+
+</head>
+<body class=rs-responsive>
+  <div class="rs-wrapper">
+
+  <div class="rs-body">
+  <div class="rs-inner">
+    <div class="rs-container">
+  <div ng-app="Highlight" >
+<div ng-controller="Summary">
+<a ng-show="hideSummary" ng-click="hideSummary = !hideSummary" alt="Hide summary cards">Show Summaries</a>
+<div ng-controller="Dynamic" id="queueTable" class="rs-content rs-panel">
+        <label for=queueList>Queue:</label>
+        <select id="queueList" ng-model="queueListSelect" ng-options="name as name for (name,shortname) in queueList">
+            <option value='All'>All</option>
+        </select>
+        <label for=specialFilter>Filters:</label>
+        <input id=search ng-model=filterSearch placeholder="Local Filter">
+        <label for=timeout>Refresh:</label><input id=timeout size=2 value="3" ng-model="queueRefreshTime">
+        <button ng-controller="Flash" ng-click="changeRefresh();flashScreen();">&#8623;</button>
+        <span ng-class="{hide:!gettingFeedback}" class=loading>Loading</span>
+<table class="rs-list-table rs-select-table ticketTable">
+    <col class="rs-table-status">
+    <col ng-repeat="c in columns" class="ticketColumn{{c}}">
+    <tr>
+       <th class="rs-table-status"></th>
+       <th ng-repeat="c in columns">
+            <a ng-click="changeSort(c)" class="rs-table-sort "
+                ng-class="{'rs-table-sort-desc': predicate==c&&reverse, 'rs-table-sort-asc': predicate==c}">
+                <span class="rs-table-sort-text">{{c}}</span>
+                <span ng-if="c == 'Tickets'">{{showing.Tickets.length}}</span>
+                <span class="rs-table-sort-indicator"></span>
+            </a>
+        </th>
+    </tr>
+    <tr ng-repeat="t in (showing.Tickets = (feedbacks |filter:{$:filterSearch} |orderBy:getOrder():reverse))">
+        <td class="rs-table-status rs-table-status-ok" 
+            ng-class='{ 
+                "rs-table-status-warning": t.severity =="urgent",
+                "rs-table-status-error ": t.severity == "emergency" }'></td>
+        <td><a href="{{t.ticketUrl}}">{{t.ticket}}</a></td>
+        <td ng-bind="t.intime | timeSince"></td>
+        <td ng-bind="t | scoreCalc"></td>
+        <td><i ng-class="{ 'rs-icon-error-indicator': t.watchlist}"></i>&nbsp;<a target="_blank" href="{{t.accountUrl}}">{{t.accountName}}</a></td>
+        <td>
+            <a ng-click="getComment(t)" ng-class="{toggleOn: t.lastComment}" class="toggle" alt="Last comment">+</a>
+            <a ng-href="t.ticketUrl">{{t.subject}}</a>
+            <pre ng-show="t.lastComment" class="lastComment " ng-bind="t.lastComment"></pre>
+        </td>
+        <td><span ng-bind="t.status" ng-class="t.status | noSpaces" class="rs-status"></span></td>
+        <td>
+            <span ng-if="t.linux" class="os-linux">L</span>
+            <span ng-if="t.windows" class="os-windows">W</span>
+        </td>
+    </tr>
+</table>
+</div>
+
+</body>
+</html>
