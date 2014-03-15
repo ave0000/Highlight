@@ -1,5 +1,5 @@
 "use strict";
-var serverHost = 'highlight.res.rackspace.com';
+var serverHost = window.location.host
 var redisHost = serverHost+':3000';
 var app = angular.module('Highlight', []);
 
@@ -192,7 +192,7 @@ function Dynamic($scope, $http, $timeout, pref) {
     $scope.$watch('queueListSelect + queueRefreshTime + filterListSelect', 
         function(){$scope.changeRefresh();} );
 
-    $scope.$watch('showingTickets.length',function(len) {
+    $scope.$watch('showing.Tickets.length',function(len) {
         if(len != undefined /*&& len != window.parent.document.title*/)
             window.parent.document.title = len + ' - Highlight';});
 
@@ -239,12 +239,12 @@ function Dynamic($scope, $http, $timeout, pref) {
         $timeout.cancel($scope.timeOutHolder);
         var options = 'queue';
         if($scope.queueListSelect != undefined)
-            options = options+'='+$scope.queueListSelect;
+            options = options+'='+encodeURIComponent($scope.queueListSelect);
         if($scope.filterListSelect != undefined) {
-            options = options+'&filter='+$scope.filterListSelect.name;
+            options = options+'&filter='+encodeURIComponent($scope.filterListSelect.name);
             // TODO: if filterListSelect option is different than filterList option then ...
             if($scope.filterListSelect.parameters != undefined){
-                options += '&filterOpt='+$scope.filterListSelect.parameters[0].value;
+                options += '&filterOpt='+encodeURIComponent($scope.filterListSelect.parameters[0].value);
             }
         }
         $scope.gettingFeedback = true;
