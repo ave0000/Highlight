@@ -94,9 +94,14 @@ function fetchSummary(profile,latency) {
 	http.get(url,function(res){
 		var data = '';
 		res.on('data',function(chunk){data+=chunk;}); //may barf on unicode at chunk boundry?
-		res.on('end',function(){processQueue(data);});
+		res.on('end',function(){
+			processQueue(data);
+		});
 	}).on('error',function(e){
 		console.log("Error: %s",e.message);
+		//retry i guess?
+		console.log("Retrying \"%s\" in 5 seconds",profile);
+		setTimeout(function() {fetchSummary(profile,latency)}, 5000);
 	}).setTimeout(30000);
 }
 
@@ -116,7 +121,7 @@ function newSummary(d) {
 	var latency = data[2];
 	if(!profile || !latency) return process.nextTick(popNext);;
 	db.get('ticketList:'+profile+':timestamp',function(err,reply){
-		if(!isFresh(reply,30000)) {
+		if(!isFresh(reply,10000)) {
 			console.log("get: %s, %s",profile,latency);
 			fetchSummary(profile,latency);
 		}else{

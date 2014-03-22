@@ -13,7 +13,7 @@ wss.on('connection', function(ws) {try{
     db.on("error", function(err) {
       var msg = clientHost+"Error connecting to redis";
       console.error(msg, err);
-      ws.close(msg);
+      ws.close(1011,msg);
     });
     ws.on('message', function(message) {
         var parsed;
