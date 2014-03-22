@@ -179,7 +179,7 @@ if(isset($_REQUEST['userPrefs'])){
     if($jsonPrefs !== false)
         echo $jsonPrefs;
 }
-if(isset($_REQUEST['userPrefset']) && isset($_POST)){
+if(isset($_REQUEST['userPrefset']) && isset($_POST) && isset($_COOKIE['COOKIE_last_log'])){
     //easy to fake :/
     $user  = $_COOKIE['COOKIE_last_login'];
     $postdata = file_get_contents("php://input");
