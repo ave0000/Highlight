@@ -40,7 +40,10 @@ wss.on('connection', function(ws) {try{
                         console.log(e);}
                 })
                 break;
-
+            case "bye":
+            case "close":
+                ws.close(1000,"Thank you, come again!");
+                break;
             case "stats":
                 stats(ws,wss,db);
                 break;
