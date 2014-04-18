@@ -33,7 +33,10 @@ app.filter('timeSince', function(){
 });
 
 function baseScore(t) {
-    var base_score = 0;
+    var base_score = 1;
+
+    if(t.subject == undefined)
+	return undefined;
     var feedBack = 'Feedback Received';
 
     var sub = t['subject'];
@@ -44,20 +47,22 @@ function baseScore(t) {
         base_score = 1200;
     else if(/ALERT:.*SiteScope.*/i.test(sub))
         base_score = 800;
-    else if (/Monitoring Alert .*/.test(t.subject))
+    else if (/Monitoring Alert .*/.test(sub))
         base_score = 700
     else if(/.*customer_initiated.*/i.test(cat))
         base_score = 600;
     else if(t.status == feedBack)
         base_score = 600;
-    return base_score
+    else
+	return base_score;
+    return base_score/100;
 }
 
 function ticketScore(t) {
     if (/^SCHLD \d+.*/.test(t.subject))
         return '-';
 
-    if(t.base_score === undefined)
+    if(t.base_score == undefined) 
         t.base_score = baseScore(t);
 
     var points = 2.25;
@@ -71,6 +76,7 @@ function ticketScore(t) {
 
     //data collected, time to calc
     var score = t.base_score + (2 * age * points);
+    //var score = (t.base_score + ( points  * Math.log(Date.now() - t.intime) ) );
     //if($profile)
     //    $score *= getScoreModifier($t,$profile);
 
@@ -111,9 +117,10 @@ app.service('pref',function($http){
     this.save = function(key,val){
         if(pref.cache[key]!==undefined && pref.cache[key] === val) return true;
         console.log('saving '+key+' as:"'+val+'"');
-        //maybe these should be buffered into blocks...
         var prefs = {last: Date.now()};
         prefs[key] = val;
+        //TODO: could buffer pref saves by
+        //add to buffer and reset timeout
         $http({
             method: 'POST',
             url: prefurl+'?userPrefset',
@@ -124,8 +131,10 @@ app.service('pref',function($http){
     this.watch = function(key,$scope) {
         $http.get(prefurl+'?userPrefs='+key)
             .then(function (response) {
-                if(response.data !==undefined && response.data[key] !== undefined)
-                    pref.cache[key] = $scope[key] = response.data[key];
+                if(response.data !==undefined && response.data[key] !== undefined) {
+                    console.log("found pref: " + key + " = '" + response.data[key] + "'");
+                    $scope[key] = pref.cache[key] = response.data[key];
+                }
             });
         $scope.$watch(key, function(newval, oldval) {
             if (newval!==undefined && newval !== oldval)
@@ -164,10 +173,14 @@ function Dynamic($scope, $http, $timeout, pref) {
         }
     });
 
+    //this should be an angular service
     var jsonSocket;
     function pubSocket() {
-        //if(jsonSocket !== undefined && jsonSocket.close)
-        //    return jsonSocket.close();
+        if(jsonSocket && jsonSocket.readyState == 1) {
+            jsonSocket.send(JSON.stringify(["bye"]));
+            jsonSocket.close();
+        }
+
         jsonSocket = new WebSocket("ws://"+redisHost);
 
         var subscribedTo = "ticketList:"+$scope.queueListSelect;
@@ -178,7 +191,7 @@ function Dynamic($scope, $http, $timeout, pref) {
         };
         jsonSocket.onmessage = function(message) {
             if(this !== jsonSocket) { //race condition
-                this.close();
+                return this.close();
             }
             var data = message.data;
             //sanity check and then apply the message
@@ -186,7 +199,7 @@ function Dynamic($scope, $http, $timeout, pref) {
             catch(e) {/*cool story*/}
 
             if(sub) {
-                gotTickets(sub);
+                $scope.$apply(gotTicketList(sub));
             }
             else
                 console.log("received:", data);
@@ -209,6 +222,7 @@ function Dynamic($scope, $http, $timeout, pref) {
     getQueueList();
 
     $scope.changeRefresh = function() {//modifications buffer
+
         $timeout.cancel($scope.refreshTimeTimer);
         $scope.refreshTimeTimer = $timeout(pubSocket,400);
     }
@@ -227,17 +241,25 @@ function Dynamic($scope, $http, $timeout, pref) {
         //timezone issue i guess?
         t.intime = Date.parse(t.intime) + 18000000;
 
-        $scope.feedbacks.push(t);
+        
+        //don't make duplicates
+        var tickets = $scope.feedbacks;
+        for (var i=0;i<tickets.length;i++)
+            if(tickets[i] && tickets[i].ticket == t.ticket){
+                angular.extend(tickets[i],t);
+                return;
+            }
+        
+        tickets.push(t);
     }
-    var addTickets = function(tickets) {
+    function requestTicketsResponse(response) {
+        if(response.data !==undefined && response.data.tickets !== undefined)
+            response.data.tickets.forEach($scope.addTicket);
+        else
+            console.log(respose);
+    }
+    function requestTickets(tickets) {
         //most of the code in this fn is to split the request into chunks
-
-        function response(response) {
-            if(response.data !==undefined && response.data.tickets !== undefined)
-                response.data.tickets.forEach($scope.addTicket);
-            else
-                console.log(respose);
-        }
         var slice, req = "";
         var url = "/api/v1/tickets?ticket_numbers="
         var atATime = 10;
@@ -247,84 +269,40 @@ function Dynamic($scope, $http, $timeout, pref) {
         while (i < n) {
             slice = tickets.slice(i, i += atATime);
             req = slice.join("&ticket_numbers=");
-            $http.get(url+req).then(response);
+            $http.get(url+req).then(requestTicketsResponse);
         }
-        
     }
 
-    var gotTickets = function(tickets) {
-        var localList = [];//build an index
+    var gotTicketList = function(tickets) {
         var old = $scope.feedbacks;
         var len = old.length;
         var newt = [];
         var expiredt = [];
+
         tickets.forEach(function(t) {
-            localList[t] = true;
             var i = len;
             while(i--)
                 if(old[i].ticket == t) {
                     return //angular.extend(old[i],tobj);
                 }
-            newt.push(t)
+            old.push({'ticket':t});
+            newt.push(t);
         });
         while(len--){//if it doesn't exist in the list,
-            if(!localList[old[len].ticket]){
-                expiredt.push(old[len].ticket);
+            var ticket = old[len].ticket
+            if(tickets.indexOf(ticket) == -1) {
+                expiredt.push(ticket);
                 old.splice(len,1);//remove it.
             }
         }
         if(newt.length > 0) {
             console.log("new " + newt);
-            addTickets(newt);
+            requestTickets(newt);
         }
-        if(expiredt.length > 0)
+        if(expiredt.length > 0) {
             console.log("expired " + expiredt);
-    }
-
-    $scope.loadFeedback = function() {/*
-        $timeout.cancel($scope.timeOutHolder);
-        var options = 'queue';
-        if($scope.queueListSelect != undefined)
-            options = options+'='+encodeURIComponent($scope.queueListSelect);
-        if($scope.filterListSelect != undefined) {
-            options = options+'&filter='+encodeURIComponent($scope.filterListSelect.name);
-            // TODO: if filterListSelect option is different than filterList option then ...
-            if($scope.filterListSelect.parameters != undefined){
-                options += '&filterOpt='+encodeURIComponent($scope.filterListSelect.parameters[0].value);
-            }
         }
-        $scope.gettingFeedback = true;
-        var httpRequest = $http({
-            method: 'GET',
-            url: 'jtable.php?'+options,
-        }).success(function(data, status) {
-            var retryIn = $scope.queueRefreshTime*1000;
-            if(data == '"try again soon"')
-                retryIn = 500;
-            else if(!data || !(data instanceof Array))
-                data = [{"subject":"None"}];
-            else{
-                var localList = [];//build an index
-                var old = $scope.feedbacks;
-                var len = old.length;
-                data.forEach(function(t) {
-                    localList[t.ticket] = true;
-                    var i = len;
-                    while(i--)
-                        if(old[i].ticket == t.ticket)
-                            return angular.extend(old[i],t);
-                    old.push(addTicket(t));
-                });
-                while(len--){//if it doesn't exist in the list,
-                    if(!localList[old[len].ticket]){
-                        old.splice(len,1);//remove it.
-                    }
-                }                
-                $scope.gettingFeedback = false;
-            }
-            $scope.timeOutHolder = $timeout($scope.loadFeedback, retryIn);
-        });*/
-    };
+    }
 
     var sortSev = function(t) {
         if(t.severity == 'emergency') return 9000;
@@ -340,11 +318,11 @@ function Dynamic($scope, $http, $timeout, pref) {
             case '': 
             case 'Score': return ticketScore;
             case 'Subject': return 'subject';
-            case 'Account': return 'aname';
+            case 'Account': return 'accountName';
             case 'Status': return 'status';
             //case 'Age': return sortAge;
             case 'Age': return 'intime';
-            case 'OS': return 'platform';
+            case 'OS': return 'calculated_platform';
             case 'Tickets': return sortSev;
             default: return $scope.predicate;
         }
@@ -394,7 +372,6 @@ function Flash($scope, $timeout) {
     }
 }
 
-
     </script>
 
 </head>
@@ -414,7 +391,7 @@ function Flash($scope, $timeout) {
         </select>
         <label for=specialFilter>Filters:</label>
         <input id=search ng-model=filterSearch placeholder="Local Filter">
-        <label for=timeout>Refresh:</label><input id=timeout size=2 value="3" ng-model="queueRefreshTime">
+        <label for=timeout>Refresh:</label><input style="display:none;" id=timeout size=2 value="3" ng-model="queueRefreshTime">
         <button ng-controller="Flash" ng-click="changeRefresh();flashScreen();">&#8623;</button>
         <span ng-class="{hide:!gettingFeedback}" class=loading>Loading</span>
 <table class="rs-list-table rs-select-table ticketTable">
