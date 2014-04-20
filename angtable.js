@@ -1,5 +1,5 @@
 "use strict";
-var serverHost = 'highlight.res.rackspace.com';
+var serverHost = window.location.host;
 var redisHost = serverHost+':3000';
 var app = angular.module('Highlight', []);
 
