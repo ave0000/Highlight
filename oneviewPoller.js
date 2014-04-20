@@ -4,7 +4,7 @@ require('console-ten').init(console);
 
 var db = redis.createClient('/var/run/redis/redis.sock');
 db.on("error", function(err) {
-  console.error(clientHost+"Error connecting to redis", err);
+  console.error("Error connecting to redis", err);
 });
 
 function saveTickets(db,profile,tickets) {
