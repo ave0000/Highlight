@@ -20,7 +20,7 @@ $filters = '[
         },{
                 "name":"Accounting",
                 "fn":"accountFind",
-                "parameters":[{"name":"Account","value":"AON"}]
+                "parameters":[{"name":"Account","value":"/AON|3M Company|Electronic Arts|Xero|Ernst/"}]
         },{
                 "name":"Severity",
                 "fn":"severityFilter",
@@ -94,13 +94,21 @@ function goAway($q,$type='/^((?!OPSMGR).)*$/'){
 function accountFind($queue,$value) {
     if(!is_array($queue) || $value == '') return $queue;
 
+    if(@preg_match($value,null) === false) {
+	$foo = new stdClass();
+        $foo->subject = "Could not parse regex $value";
+    	return array($foo);
+    }
+
     $out = array();
     foreach($queue as $ticket)
-        if(stristr($ticket->aname,$value)!==FALSE)
-            $out[] = $ticket;
+        if( (isset($ticket->aname) && preg_match($value,$ticket->aname)) ||
+            (isset($ticket->account_number) && preg_match($value,$ticket->account_number)))
+               $out[] = $ticket;
 
     if(count($out) < 1) {
-        $foo->subject = "No results for $value";
+	$foo = new stdClass();
+        $foo->subject = "No results for $value in this queue";
         $out[] = $foo;
     }
     return $out;
