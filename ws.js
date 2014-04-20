@@ -9,7 +9,7 @@ wss.on('connection', function(ws) {try{
 	console.log(clientHost+' new connection');
 
 	var db;
-    db = redis.createClient('/dev/shm/redis.sock');
+    db = redis.createClient('/var/run/redis/redis.sock');
     db.on("error", function(err) {
       var msg = clientHost+"Error connecting to redis";
       console.error(msg, err);

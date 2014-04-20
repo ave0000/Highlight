@@ -2,7 +2,7 @@ var http = require("http");
 var redis = require('redis');
 require('console-ten').init(console);
 
-var db = redis.createClient('/dev/shm/redis.sock');
+var db = redis.createClient('/var/run/redis/redis.sock');
 db.on("error", function(err) {
   console.error(clientHost+"Error connecting to redis", err);
 });
