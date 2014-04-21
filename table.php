@@ -9,7 +9,6 @@
 $pageStartTime = microtime(true);
 date_default_timezone_set('America/Chicago');
 
-@include_once('outToday.php');
 
 /*
  * Given a number of seconds, return a contextual string
@@ -49,14 +48,9 @@ function secs_to_str($x) {
 // The queues we'd like to see with a friendly name
 $profiles = array(
     "Enterprise All"=>"EntAll",
-    "Enterprise East (Linux)"=>"EastLin",
-    "Enterprise East (Windows)"=>"EastWin",
-    "Enterprise West (Linux)"=>"WestLin",
-    "Enterprise West (Windows)"=>"WestWin",
-    "Enterprise F1000 (Linux)"=>"F1kLin",
-    "Enterprise F1000 (Windows)"=>"F1kWin",
+    "Enterprise (Linux)"=>"EntLin",
+    "Enterprise (Windows)"=>"EntWin",
     "Enterprise Cloud Only"=>"Cloud",
-    "Enterprise ARIC Only"=>"Aric"
 );
 
 //Get data
@@ -107,53 +101,10 @@ function summaryTable($summary) {
 
 require_once('printQueue.php');
 
-//given a queue, find the tickets that are over 'hours' old
-function findAgedTickets($queue,$hours=4) {
-    $out = array();
-    $min_seconds = $hours * 3600;
-
-    foreach($queue as $ticket) {
-        if($ticket->age_seconds >= $min_seconds) {
-            $out[] = $ticket;
-        }
-    }
-    return $out;
-}
-
-
-//given a queue, return a queue of tickets with a certain 'status'
-function findStatus($queue,$status="Feedback Received") {
-    $getStatuses = function($t)use($status) {
-        return $t->status == $status;
-    };
-    return array_filter($queue,$getStatuses);
-}
-
-
-//given a queue, return a queue with accounts with at least 'min_count' tickets
-function findMultiTicketAccounts($tickets,$min_count=4) {
-    //i think this is O(n log n)
-    $out = array();
-
-    while($tickets) {
-        $test = array(array_pop($tickets));
-        $account = $test[0]->account;
-
-        for($i=0;$i<count($tickets);$i++) {
-            if($tickets[$i]->account == $account) {
-                $test[] = $tickets[$i];
-                unset($tickets[$i]);
-            }
-        }
-        if(count($test)>=$min_count)
-            $out=array_merge($out,$test);
-    }
-
-    return $out;
-}
-
-
 $workingQueue = $data['Enterprise All']->queue;
+
+require_once('filters.php');
+@include_once('outToday.php');
 
 echo "<h1>Depth and Breadth</h1>";
 echo summaryTable($summary);
@@ -161,12 +112,13 @@ echo summaryTable($summary);
 echo "<h1>Fine Wines</h1>";
 echo printQueue(findAgedTickets($workingQueue));
 
-echo "<h1>Feebers</h1>";
+echo "<h1>Feedback</h1>";
 echo printQueue(findStatus($workingQueue));
 
-echo "<h1>MultiBall</h1>";
-echo printQueue(findMultiTicketAccounts($workingQueue,3));
+#echo "<h1>MultiBall</h1>";
+#echo printQueue(findMultiTicketAccounts($workingQueue,3));
 
+return true;
 $report =
 "======================================\n
 WORK BREAKDOWN REPORT FOR $today\n
