@@ -26,12 +26,13 @@ function getTicketList($redis,$profile) {
     $listName = 'ticketList:'.$profile;
     $list = $redis->get($listName);
 
-    if($list === false || $list == false) {
+    if($list === false || $list == false ) {
+	echo $list;
         $redis->rpush('wantNewQueue',$profile);
         return "try again soon";
     }
 
-    return json_decode($list);
+    return json_decode($list)->tickets;
 }
 
 function getProfileData($profile) {
