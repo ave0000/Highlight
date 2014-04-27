@@ -93,6 +93,10 @@ function figureOutFilter($name) {
 		return $filter;
 	}
 	if(strpos($name,'enterprise ')!==false) {
+		if(strpos($name,'aric')!==false)
+			return 'aric';
+		if(strpos($name,'cloud')!==false)
+			return 'cloud';
 		$filter = str_replace('enterprise ','ent+',$name);
 		$filter = str_replace('f1000','f1k',$filter);
 		$filter = str_replace(' only','',$filter);
