@@ -42,9 +42,10 @@ app.service('pref',function($http){
     this.save = function(key,val){
         if(pref.cache[key]!==undefined && pref.cache[key] === val) return true;
         console.log('saving '+key+' as:"'+val+'"');
-        //maybe these should be buffered into blocks...
         var prefs = {last: Date.now()};
         prefs[key] = val;
+        //TODO: could buffer pref saves by
+        //add to buffer and reset timeout
         $http({
             method: 'POST',
             url: prefurl+'?userPrefset',
@@ -55,8 +56,10 @@ app.service('pref',function($http){
     this.watch = function(key,$scope) {
         $http.get(prefurl+'?userPrefs='+key)
             .then(function (response) {
-                if(response.data !==undefined && response.data[key] !== undefined)
-                    pref.cache[key] = $scope[key] = response.data[key];
+                if(response.data !==undefined && response.data[key] !== undefined) {
+                    console.log("found pref: " + key + " = '" + response.data[key] + "'");
+                    $scope[key] = pref.cache[key] = response.data[key];
+                }
             });
         $scope.$watch(key, function(newval, oldval) {
             if (newval!==undefined && newval !== oldval)
@@ -72,35 +75,12 @@ function Summary($scope, $http, $timeout,pref) {
     $scope.refreshTime = 30;
     $scope.summaries = {};
 
-    //listen for published updates so that we can avoid unneeded refreshes
-    var jsonSocket;
-    function pubSocket() {
-        jsonSocket = new WebSocket("ws://"+redisHost);
-        jsonSocket.onopen = function() {
-            this.send(JSON.stringify(["PSUBSCRIBE", "summary:*"]));
-            console.log("WebSocket connected and subscribed to summary updates.");
-        };
-        jsonSocket.onmessage = function(message) {
-            var data = message.data;
-            //sanity check and then apply the message
-            try{var sub = JSON.parse(data);}
-            catch(e) {/*cool story*/}
-            if(sub && sub.profile)
-                $scope.gotQueue(sub);
-            else
-                console.log("JSON received:", data);
-        };
-        jsonSocket.onclose = function(a) {
-            console.log(a);
-            setTimeout(function(){pubSocket()},4000);
-        }   
-    }
-    pubSocket();
-
     //var requestSocket;
-    function reqSocket(data) {//polling, more or less.
+    function reqSocket(data) {//polling, more or less. ... ostensibly distributed...
         requestSocket = new WebSocket("ws://"+redisHost);
         requestSocket.onopen = function() {
+            this.send(JSON.stringify(["PSUBSCRIBE", "summary:*"]));
+            console.log("WebSocket connected and subscribed to summary updates.");
             data.forEach($scope.loadQueue);
         };
         requestSocket.onmessage = function(msg) {
@@ -128,23 +108,25 @@ function Summary($scope, $http, $timeout,pref) {
     }
     $scope.loadQueue = function(queue) {
         if(requestSocket.readyState != WebSocket.OPEN) return false;
-        var queueStr = 'summary:'+queue.profile+':latency_'+queue.latencyCount;
+        var queueStr = 'summary:'+queue.profile;
         var age;
         var retryIn = $scope.refreshTime*1000;
 
-        if(queue.timeStamp===undefined) {//first run won't be populated
+        if(queue.timestamp===undefined) {//first run won't be populated
             requestSocket.send(JSON.stringify(["GET", queueStr]));
-            queue.timeStamp = 0;
+            queue.timestamp = 0;
             age = retryIn *0.75; //quarter of the normal refresh
-        }else
-            age = Date.now() - queue.timeStamp; //how long ago was it?
+        }else{
+            age = Date.now() - queue.timestamp; //how long ago was it?
+            if(age < 0) age = 0; //time travel ...
+        }
 
-        if(age > retryIn) {
+        if(age >= retryIn) {
             //console.log(queue.profile+' data is '+age/1000+' seconds old, requesting new');
             requestSocket.send(JSON.stringify(["rpush","wantNewSummary",queueStr]));
         }else{
             var diff = retryIn - age; //reschedule
-            //console.log(queue.profile+'too early for refresh: '+age+' trying again in '+diff);
+            //console.log(queue.profile+' is '+age+'ms old. next refresh in '+diff+'ms');
             $timeout.cancel(queue.timeout);
             queue.timeout = $timeout(function () {$scope.loadQueue(queue)}, diff);
         }
@@ -330,14 +312,23 @@ function Dynamic($scope, $http, $timeout, pref) {
 }
 
 function Flash($scope, $timeout) {
+    $scope.toggle = true;
     $scope.flashScreen = function() {
+        $scope.toggle = !$scope.toggle;
         var allTheThings = document.getElementsByClassName("ticketTable")[0].rows;
-        for(var i=0;i<allTheThings.length;i++) {
-            var e = allTheThings[i].style;
-            setTimeout(function(el){el.backgroundColor = 'yellow';},40*i,e);
-            setTimeout(function(el){el.backgroundColor = '';},75+40*i,e);
-        }
 
+        var ahh = function(el){
+            if(!el) return false;
+            var e = el.style;
+            e.backgroundColor = 'yellow';
+            setTimeout(function(e){e.backgroundColor = '';},55,e);
+
+            el = ($scope.toggle) ? el.nextElementSibling : el.previousElementSibling;
+            setTimeout(ahh,40,el);
+        }
+        ahh(allTheThings[1]);
+        
+/*
         var derp = document.body.style;
         derp.backgroundColor="yellow";
         setTimeout(function(){derp.backgroundColor="black";},100);
@@ -346,6 +337,6 @@ function Flash($scope, $timeout) {
         setTimeout(function(){derp.backgroundColor="black";},300);
         setTimeout(function(){derp.backgroundColor="yellow";},325);
         setTimeout(function(){derp.backgroundColor="";},400);
-
+*/
     }
 }

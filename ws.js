@@ -9,6 +9,7 @@ wss.on('connection', function(ws) {try{
 	console.log(clientHost+' new connection');
 
 	var db;
+    var pubdb;
     db = redis.createClient('/var/run/redis/redis.sock');
     db.on("error", function(err) {
       var msg = clientHost+"Error connecting to redis";
@@ -28,17 +29,21 @@ wss.on('connection', function(ws) {try{
             case "rpush":
                 db.rpush(parsed[1],parsed[2]);
                 break;
+            case "subscribe":
             case "psubscribe":
                 //subscribe blocks the redis connection
-                //maybe create a new redis connect here?
-                db.PSUBSCRIBE(parsed[1]);
-                db.on("pmessage",function(pattern,channel,message){
+                if(pubdb && pubdb.connected) pubdb.quit();
+                pubdb = redis.createClient('/var/run/redis/redis.sock');
+                pubdb.PSUBSCRIBE(parsed[1]);
+                pubdb.on("pmessage",function(pattern,channel,message){
                     try{
                         ws.send(message);
                     }catch(e) {
                         console.log('error sending pubished message to '+clientHost);
-                        console.log(e);}
-                })
+                        console.log(e);
+                        pubdb.quit();
+                    }
+                });
                 break;
             case "bye":
             case "close":
@@ -54,8 +59,10 @@ wss.on('connection', function(ws) {try{
     ws.on('close',function(){
         console.log(clientHost+' closed connection');
         if(db && db.connected) {
-            db.punsubscribe('*');
             db.end();
+        }
+        if(pubdb && pudb.connected) {
+            pubdb.end();
         }
     });
 }catch(e) {console.log(e);}
