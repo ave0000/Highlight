@@ -53,15 +53,17 @@ function jget($url) {
 	return $json;
 }
 
-require_once('summary.php');
 function getCache($redis,$profile) {
 	echo "getting $profile ";
 
-	$map = getSummaryList();
+	$map = jget('/var/www/html/highlight/profile_list.inc');
 	$summary = '';
 	foreach($map as $info)
-		if(is_object($info) && $info->profile == $profile)
-			$summary = $info->filter;
+		if(is_object($info))
+			if($info->profile == $profile)
+				$summary = $info->filter;
+			else if($info->filter == $profile)
+				$summary = $info->filter;
 
 	if($summary == ''){
 		echo "Could not map profile: '". $profile ."'\n";

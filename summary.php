@@ -11,35 +11,6 @@ function getCachedSummary($profile) {
     return unserialize($boop);
 }
 
-/*
-//get just the summary info for a profile based on latency
-function getSummary($profile,$latency) {
-	$latstr = "latency_"; //ability to take string OR bare number
-	if(strpos($latency,$latstr)===false)
-		$latency = $latstr.$latency;
-
-	$cacheProfile = "summary".$profile.$latency;
-	if(( $hasCache = getCachedSummary($cacheProfile) ) !== false)
-		return $hasCache;
-
-	//hitting oneview is apparently very expensive
-	$slick = 'http://oneview.rackspace.com/newslick.php';
-	$url = $slick . '?fmt=json&latency='.$latency.'.&profile=' . urlencode($profile);
-	
-	$contents = file_get_contents($url);
-	$contents = json_decode($contents);
-	$data = $contents;
-	$contents = $contents->summary;
-
-	$out->profile = $profile;
-	$out->totalCount = $contents->total_count;
-	$out->latency = $contents->{$latency};
-
-	saveCachedSummary($out,$cacheProfile);
-	return $out;
-}
-*/
-
 //given a profile and a latency depth
 //return a summary consisting of
 //	profile
@@ -68,11 +39,9 @@ function getSummaries($profiles,$date='') {
 
 //return a list of queues that there should be summaries for
 function getSummaryList() {
+	//return json_decode(file_get_contents('profile_list.inc'));
     $pecans = 'http://pecan-api.res.rackspace.com/api/v1/summary';
     $pecans = json_decode(file_get_contents($pecans))->summary;
-
-    //require_once('jtable.php');
-    //$map = getProfileListShort();
 
     foreach($pecans as $q){
     	$q->filter = figureOutFilter($q->profile);
@@ -83,15 +52,8 @@ function getSummaryList() {
 
 function figureOutFilter($name) {
 	$filter = $name; //prepopulate in case we have no idea
-	$linuxTeams = array('n','o','p');
-	$name = strtolower($name);
+	$name = strtolower($name); //make life easier
 
-	if(strpos($name,'enterprise all')!==false) {
-		$filter = str_replace('enterprise all','ent',$name);
-		$filter = str_replace(' (','+',$filter);
-		$filter = str_replace(')','',$filter);
-		return $filter;
-	}
 	if(strpos($name,'enterprise ')!==false) {
 		if(strpos($name,'aric')!==false)
 			return 'aric';
@@ -106,6 +68,8 @@ function figureOutFilter($name) {
 	}
 
 	//Teams need explicit platform filters because damn you.
+	//seriously ... why can't this come from the api?
+	$linuxTeams = array('n','o','p','v','x');
 	if(strpos($name,'team')!==false) {
 		$filter = str_replace("team ",'',$name);
 		if(strpos($name,' - ')!==false) {
@@ -143,9 +107,8 @@ function figureOutFilter($name) {
 }
 
 //based on https://wiki.rackspace.corp/Enterprise/tvdisplay
-//why can't they all just be "All"?
 function figureOutLatency($name) {
-	//assume table is sorted by priority,
+	//table is sorted by priority,
 	//take the first match
 	$latencies = array(
 		'Team'=>10,

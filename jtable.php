@@ -50,36 +50,6 @@ function getProfileData($profile) {
     return $out;
 }
 
-//a list of profiles, minus the ones we don't want
-function getProfileList(){
-    return array_keys(getProfileListShort());
-
-
-    if(false !== ($hasCache = getCachedProfile('profileList'))) 
-        return $hasCache;
-
-    include('profile_list.inc');
-    $out = array();
-    $profiles = array_keys($qs);
-    $excludes = array('Corp','Strat','Priority','Testing');
-    $e = count($excludes);
-
-    //Rewrite me with a better method of filtering
-    foreach($profiles as $q) {
-    	$hasBad = false;
-    	for($i=0;$i<$e;$i++){
-        	if(strpos($q, $excludes[$i])!==FALSE){
-    			$hasBad = true;
-    			break;
-    		}
-    	}
-    	if(!$hasBad)
-    		$out[$q] = $q;
-    } 
-    saveCache($out,'profileList');
-    return $out;
-}
-
 //scrunch the profile list names into an associative array
 function getProfileListShort() {
     require_once('summary.php');
@@ -89,48 +59,6 @@ function getProfileListShort() {
         $out[$q->profile] = $q->filter;
     }
     return $out;
-
-    $pecans = 'http://pecan-api.res.rackspace.com/api/v1/allqueues';
-    $views = json_decode(file_get_contents($pecans))->summary;
-
-    $out = array();
-    foreach($views as $short=>$list) {
-	if(isset($list[1]))
-		$index = $list[1];
-	elseif(isset($list[0]))
-		$index = $list[0];
-	else
-		$index = $list;
-        $out[$index] = $short;
-    }
-
-   return $out;
-
-
-	require_once('summary.php');
-    $trims = array(
-        'Enterprise '=>'',
-        //'Team'=>'T:',
-        'Linux'=>'L',
-        'Windows'=>'W',
-	'Team '=>'',
-	'Only'=>'',
-    	'Implementation'=>'Imp',
-    	'Latin America'=>'LATAM',
-	'Critical Sites'=>'CAS',
-	'DBA - '=>'',
-	'Storage - '=>'',
-	'Virtualization'=>'Virt',
-	'Segment '=>'Seg',
-	'Support'=>'Sup'
-    );
-    $profiles = getProfileList();
-
-    foreach($profileJson as $name=>$short){
-            //$name = str_replace(array_keys($trims),$trims,$q->profile);
-            $profiles[$name] = $short;
-    }
-    return $profiles;
 }
 
 function selectProfile($requested) {
@@ -146,14 +74,7 @@ function selectProfile($requested) {
             return $p->profile;
     }
 
-    /*
-    if(in_array($requested,$profiles))
-        return array_search($requested,$profiles);
-    else if(in_array($requested,array_keys($profiles)))
-        return $requested;
-    */
     echo '"'.$requested.'"';
-
     return 'Enterprise All';
 }
 

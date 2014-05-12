@@ -74,6 +74,7 @@ function Summary($scope, $http, $timeout,pref) {
     $scope.hideSummary = false;
     $scope.refreshTime = 30;
     $scope.summaries = {};
+    $scope.profiles = [];
 
     //var requestSocket;
     function reqSocket(data) {//polling, more or less. ... ostensibly distributed...
@@ -87,7 +88,7 @@ function Summary($scope, $http, $timeout,pref) {
             var data = msg.data;
             try{data = JSON.parse(data);}
             catch(e) {console.log("couldn't parse json");}
-            if(data.profile)
+            if(data && data.profile)
                 $scope.gotQueue(data);
             else
                 console.log(msg);
@@ -100,7 +101,23 @@ function Summary($scope, $http, $timeout,pref) {
     }
     
     $scope.gotQueue = function(queue) {
-        queue = angular.extend($scope.summaries[queue.profile],queue);
+        var profile;
+        if(!queue.profile || !$scope.summaries[queue.profile]) {
+            var len=$scope.profiles.length;
+            for (var i=0;i<len; i++) {
+                if( $scope.profiles[i].filter == queue.profile ) {
+                    profile = $scope.profiles[i];
+                }
+            }
+            if(!profile) {
+                console.log(queue);
+                return false;
+            }
+        }else
+            profile = $scope.summaries[queue.profile];
+
+        angular.extend(profile,queue);
+
         //if we're not in a digest/apply cycle, start one
         if(!$scope.$$phase) $scope.$apply();
         //schedule the next poll
@@ -134,8 +151,9 @@ function Summary($scope, $http, $timeout,pref) {
     //fetch the list of profiles to render
     //instead, we could have a list of user selected profiles to watch
     $scope.loadData = function() {
-        var httpRequest = $http.get('summary.php?summaryProfiles')
+        var httpRequest = $http.get('profile_list.inc')
         .success(function(data){
+            $scope.profiles = data;
             data.forEach(function(queue){//create cards
                 $scope.summaries[queue.profile] = queue;
             });
