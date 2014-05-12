@@ -5,7 +5,7 @@
     <title>Queue Highlights</title>
     <link rel="stylesheet" type="text/css" href="https://eafdbc63c97ce6bec9ef-b0a668e5876bef6fe25684caf71db405.ssl.cf1.rackcdn.com/v1-latest/canon.min.css">
     <link rel="stylesheet" type="text/css" href="css/queueview.css">
-    <script type='text/javascript' src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.0-beta.5/angular.min.js"></script>
+    <script type='text/javascript' src="//ajax.googleapis.com/ajax/libs/angularjs/1.3.0-beta.5/angular.min.js"></script>
     <script type='text/javascript' src="angtable.js"></script>
     <script type='text/javascript' src="score/score.js"></script>
     <script language="javascript">
@@ -17,10 +17,14 @@ app.filter('timeSince', function(){
         return (secs/3600 |0) + (mins < 10 ? ':0' : ':') + mins;
     }
 });
-
 app.filter('scoreCalc',function(){
     return ticketScore;
 });
+app.filter('trust', ['$sce', function($sce){//needed for ng-bind-html
+        return function(text) {
+            return $sce.trustAsHtml(text);
+        };
+}]);
 
 function Live($scope, $http, $timeout, pref) {
     $scope.queueRefreshTime = 5;
@@ -32,7 +36,7 @@ function Live($scope, $http, $timeout, pref) {
 
     $http({
         method: 'GET',
-        url: 'jtable.php?showProfiles',
+        url: 'profile_list.inc',
         cache: true,
     }).success(function(data, status){$scope.queueList = data;});
 
@@ -78,6 +82,10 @@ function Live($scope, $http, $timeout, pref) {
             if(this === jsonSocket)
                 setTimeout(function(){pubSocket()},4000);
         }
+        jsonSocket.sendj = function(o) {
+            try{return jsonSocket.send(JSON.stringify(o));}
+            catch(e) {console.log(e);}
+        }
     }
     pubSocket();
 
@@ -86,11 +94,13 @@ function Live($scope, $http, $timeout, pref) {
 
         var profile = "ticketList:"+$scope.queueListSelect;
         if(jsonSocket.subscribed != profile) {
-            jsonSocket.send(JSON.stringify(["GET", profile]));
-            jsonSocket.send(JSON.stringify(["PSUBSCRIBE", profile]));
+            $scope.feedbacks = []; //blank out the queue
+            $scope.timestamp = ''; //to provide feedback to user
+            jsonSocket.sendj(["GET", profile]);
+            jsonSocket.sendj(["PSUBSCRIBE", profile]);
             jsonSocket.subscribed = profile;
             console.log("WebSocket connected and subscribed to "+profile+" updates.");
-        }else jsonSocket.send(JSON.stringify(["rpush","wantNewSummary",profile]));
+        }else jsonSocket.sendj(["rpush","wantNewSummary",profile]);
     }
 
     var timeoutHolder;
@@ -100,7 +110,7 @@ function Live($scope, $http, $timeout, pref) {
         var callback = $scope.demand;
 
         if(stamp<0) //prevent time travel
-            stamp = 0; 
+            stamp = 0; //actually its because desktop time isn't server time
 
         var age = Date.now() - stamp; //how long ago was it?
 
@@ -130,6 +140,8 @@ function Live($scope, $http, $timeout, pref) {
         t.ticket = t.number;
         t.ticketUrl=t.ticket_link+t.ticket;
         t.accountUrl=t.account_link+t.account_number;
+        if(t.source =="Lefty")
+            t.ticketUrl += "/edit"
 
         //timezone issue i guess?
         t.intime = Date.parse(t.intime) + 18000000;
@@ -233,21 +245,25 @@ function Live($scope, $http, $timeout, pref) {
 
         var httpRequest = $http({
             method: 'GET',
-            url: 'ctk/query.php?ticket='+t.ticket,
+            url: 'api/v1/lastcomment?ticket='+t.ticket,
             cache: true,
         }).success(function(data, status){
-            console.log(data.lastComment || data);
-            t.lastComment = data.lastComment || data;
+            console.log(data.comment || data);
+            t.lastComment = data.comment || data;
         });
     }
 
+    $scope.showing = {columns:$scope.columns};
     $scope.flarp = function() {
+        //$scope.columns = ['Tickets'];
+        //$scope.showing.columns.pop();// = ['Tickets','Age','Score','Account','Subject','Status'];
         jsonSocket.send(JSON.stringify(["stats"]));
     }
 
     pref.watch('queueListSelect',$scope);
     pref.watch('predicate',$scope);
     pref.watch('reverse',$scope);
+    pref.watch('columns',$scope);
 
     //refresh the queue when any of these are changed (blindly, but buffered)
     $scope.$watch('queueListSelect + queueRefreshTime + filterListSelect', 
@@ -272,54 +288,59 @@ function Live($scope, $http, $timeout, pref) {
         <a ng-show="hideSummary" ng-click="hideSummary = !hideSummary" alt="Hide summary cards">Show Summaries</a>
     </div>
 <div ng-controller="Live" id="queueTable" class="rs-content rs-panel">
-        <label for=queueList>Queue:</label>
-        <select id="queueList" ng-model="queueListSelect" ng-options="name as name for (name,shortname) in queueList">
+        <label for=queueList>Queue</label>
+        <select id="queueList" ng-model="queueListSelect" ng-options="q.filter as q.profile for q in queueList">
             <option value='All'>All</option>
         </select>
-        <label for=specialFilter>Filters:</label>
+        <label for=specialFilter>Filters</label>
         <input id=search ng-model=filterSearch placeholder="Local Filter">
         <label for=timeout>Refresh:</label><input style="display:none;" id=timeout size=2 value="3" ng-model="queueRefreshTime">
         <button ng-controller="Flash" ng-click="flashScreen();demand();flarp();">&#8623;</button>
         <span ng-class="{hide:!gettingFeedback}" class=loading>Loading</span>
         <span ng-bind="timestamp|date:'M/d/yy h:mm:ss a'"></span>
-<table class="rs-list-table rs-select-table ticketTable">
-    <col class="rs-table-status">
-    <col ng-repeat="c in columns" class="ticketColumn{{c}}">
-    <tr>
-       <th class="rs-table-status"></th>
-       <th ng-repeat="c in columns">
-            <a ng-click="changeSort(c)" class="rs-table-sort "
-                ng-class="{'rs-table-sort-desc': predicate==c&&reverse, 'rs-table-sort-asc': predicate==c}">
-                <span class="rs-table-sort-text">{{c}}</span>
-                <span ng-if="c == 'Tickets'">{{showing.Tickets.length}}</span>
-                <span class="rs-table-sort-indicator"></span>
-            </a>
-        </th>
-    </tr>
-    <tr ng-repeat="t in (showing.Tickets = (feedbacks |filter:{$:filterSearch} |orderBy:getOrder():reverse))">
-        <td class="rs-table-status rs-table-status-ok" 
-            ng-class='{
-                "rs-table-status-warning": t.severity =="urgent",
-                "rs-table-status-error ": t.severity == "emergency" }'></td>
-        <td><a href="{{t.ticketUrl}}">{{t.ticket}}</a></td>
-        <td ng-bind="t.intime | timeSince"></td>
-        <td ng-bind="t | scoreCalc"></td>
-        <td><i ng-class="{ 'rs-icon-error-indicator': t.watchlist}"></i>&nbsp;<a target="_blank" href="{{t.accountUrl}}">{{t.accountName}}</a></td>
-        <td>
-            <a ng-click="getComment(t)" ng-class="{toggleOn: t.lastComment}" class="toggle" alt="Last comment">+</a>
-            <a ng-href="t.ticketUrl">{{t.subject}}</a>
-            <pre ng-show="t.lastComment" class="lastComment " ng-bind="t.lastComment"></pre>
-        </td>
-        <td><span ng-bind="t.status" ng-class="t.status | noSpaces" class="rs-status"></span></td>
-        <td>
-            <span ng-if="t.linux" class="os-linux">L</span>
-            <span ng-if="t.windows" class="os-windows">W</span>
-        </td>
-    </tr>
-</table>
-<div class="rs-table-overlay" ng-hide="showing.Tickets.length">
-    <div class="rs-table-overlay-content">
-        <div class="rs-table-overlay-message">The selected queue is empty.</div>
+        <table class="rs-list-table rs-select-table ticketTable">
+            <col class="rs-table-status">
+            <col ng-repeat="c in showing.columns" class="ticketColumn{{c}}">
+            <tr>
+               <th class="rs-table-status"></th>
+               <th ng-repeat="c in showing.columns">
+                    <a ng-click="changeSort(c)" class="rs-table-sort "
+                        ng-class="{'rs-table-sort-desc': predicate==c&&reverse, 'rs-table-sort-asc': predicate==c}">
+                        <span class="rs-table-sort-text">{{c}}</span>
+                        <span ng-if="c == 'Tickets'">{{showing.Tickets.length}}</span>
+                        <span class="rs-table-sort-indicator"></span>
+                    </a>
+                </th>
+            </tr>
+            <tr ng-repeat="t in (showing.Tickets = (feedbacks |filter:{$:filterSearch} |orderBy:getOrder():reverse))">
+                <td class="rs-table-status rs-table-status-ok" 
+                    ng-class='{
+                        "rs-table-status-warning": t.severity =="urgent",
+                        "rs-table-status-error ": t.severity == "emergency" }'></td>
+                <td ng-if="showing.columns.indexOf('Tickets') > -1 "><a href="{{t.ticketUrl}}">{{t.ticket}}</a></td>
+                <td ng-if="showing.columns.indexOf('Age') > -1 " ng-bind="t.intime | timeSince"></td>
+                <td ng-if="showing.columns.indexOf('Score') > -1 " ng-bind="t | scoreCalc"></td>
+                <td ng-if="showing.columns.indexOf('Account') > -1 ">
+                    <i ng-class="{ 'rs-icon-error-indicator': t.watchlist}"></i>&nbsp;<a target="_blank" href="{{t.accountUrl}}">{{t.accountName}}</a></td>
+                <td ng-if="showing.columns.indexOf('Subject') > -1 ">
+                    <a ng-click="getComment(t)" ng-class="{toggleOn: t.lastComment}" class="toggle" alt="Last comment">+</a>
+                    <a ng-href="{{t.ticketUrl}}">{{t.subject}}</a>
+                    <div ng-show="t.lastComment" class="lastComment " ng-bind-html="t.lastComment|trust"></div>
+                </td>
+                <td ng-if="showing.columns.indexOf('Status') > -1 "><span ng-bind="t.status" ng-class="t.status | noSpaces" class="rs-status"></span></td>
+                <td ng-if="showing.columns.indexOf('OS') > -1 ">
+                    <span ng-if="t.linux" class="os-linux">L</span>
+                    <span ng-if="t.windows" class="os-windows">W</span>
+                </td>
+            </tr>
+        </table>
+        <div class="rs-table-overlay" ng-hide="showing.Tickets.length">
+            <div class="rs-table-overlay-content">
+                <div ng-show="timestamp" class="rs-table-overlay-message">No tickets here.</div>
+                <div ng-show="filterSearch" class="rs-table-overlay-message">
+                    Filtered for {{filterSearch}}.</div>
+                <div ng-hide="timestamp" class="rs-table-overlay-message">Loading...</div>
+        </div>
     </div>
 </div>
 
