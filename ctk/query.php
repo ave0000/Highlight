@@ -29,7 +29,7 @@ function query($token,$query){
     return $data;
 }
 
-function getLastComment($token,$query){
+function getLastCommentBak($token,$query){
     if(substr($query,0,3) == "ZEN") return false;
     //this might be a good place to try to cache
     //...
@@ -52,6 +52,17 @@ function getLastComment($token,$query){
 
     $data = file_get_contents($ctkurl,false,$context);
     return $data;
+}
+
+function getLastComment($token,$ticket) {
+    if(substr($query,0,3) == "ZEN") return false;
+
+    $url="http://localhost/pecan-api/api/v1/";
+    $url .= "lastcomment";
+    $url .= "?ticket=" .$ticket . "&token=" . $token;
+    
+    file_get_contents($url);
+	
 }
 
 //ask CTK to whom this token belongs
