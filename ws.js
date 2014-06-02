@@ -29,7 +29,6 @@ wss.on('connection', function(ws) {try{
             case "rpush":
                 db.rpush(parsed[1],parsed[2]);
                 break;
-            case "subscribe":
             case "psubscribe":
                 //subscribe blocks the redis connection
                 if(pubdb && pubdb.connected) pubdb.quit();
@@ -43,6 +42,29 @@ wss.on('connection', function(ws) {try{
                         console.log(e);
                         pubdb.quit();
                     }
+                });
+                break;
+            case "selectprofile":
+                //send any data that's available
+                db.get(parsed[1],function(err,reply) {if(reply) ws.send(reply);});
+                //subscribe to updates
+                if(pubdb && pubdb.connected) pubdb.quit();
+                pubdb = redis.createClient('/var/run/redis/redis.sock');
+                pubdb.PSUBSCRIBE(parsed[1]);
+                pubdb.on("pmessage",function(pattern,channel,message){
+                    try{
+                        ws.send(message);
+                    }catch(e) {
+                        console.log('error sending pubished message to '+clientHost);
+                        console.log(e);
+                        pubdb.quit();
+                    }
+                });
+                //request a refresh when a global event occurs
+                pubdb.subscribe("newData");
+                pubdb.on("message",function(channel,message){
+                    if(message == "core" || message == "cloud")
+                        db.rpush("wantNewData",parsed[1]);
                 });
                 break;
             case "bye":
@@ -61,7 +83,7 @@ wss.on('connection', function(ws) {try{
         if(db && db.connected) {
             db.end();
         }
-        if(pubdb && pudb.connected) {
+        if(pubdb && pubdb.connected) {
             pubdb.end();
         }
     });

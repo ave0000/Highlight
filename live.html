@@ -26,8 +26,13 @@ app.filter('trust', ['$sce', function($sce){//needed for ng-bind-html
         };
 }]);
 
-function Live($scope, $http, $timeout, pref) {
-    $scope.queueRefreshTime = 5;
+app.config(['$locationProvider',
+    function($locationProvider){
+        $locationProvider.html5Mode(true);
+    }]);
+
+function Live($scope, $http, $timeout, pref, $location) {
+    $scope.queueRefreshTime = 120;
     $scope.predicate = 'Score';
     $scope.reverse = true;
     $scope.feedbacks = [];
@@ -74,8 +79,11 @@ function Live($scope, $http, $timeout, pref) {
                 $scope.$apply(gotTicketList(sub.tickets));
                 $scope.timestamp = sub.timestamp;
                 //console.log("called gotTicketList on " + Date(sub.timestamp));
-            }else
+            }else if(data == "core") {
+                $scope.demand();
+            }else{
                 console.log("received:", data);
+            }
         };
         jsonSocket.onclose = function(a) {
             console.log(a);
@@ -95,12 +103,11 @@ function Live($scope, $http, $timeout, pref) {
         var profile = "ticketList:"+$scope.queueListSelect;
         if(jsonSocket.subscribed != profile) {
             $scope.feedbacks = []; //blank out the queue
-            $scope.timestamp = ''; //to provide feedback to user
-            jsonSocket.sendj(["GET", profile]);
-            jsonSocket.sendj(["PSUBSCRIBE", profile]);
+            $scope.timestamp = '';
+            jsonSocket.sendj(["selectProfile", profile]);
             jsonSocket.subscribed = profile;
             console.log("WebSocket connected and subscribed to "+profile+" updates.");
-        }else jsonSocket.sendj(["rpush","wantNewSummary",profile]);
+        }else jsonSocket.sendj(["rpush","wantNewData",profile]);
     }
 
     var timeoutHolder;
@@ -114,13 +121,10 @@ function Live($scope, $http, $timeout, pref) {
 
         var age = Date.now() - stamp; //how long ago was it?
 
-        if(age > retryIn) {
-            //console.log('Data is '+age+'ms old, requesting new');
+        if(age > retryIn)
             callback();
-        }else{
+        else
             retryIn -= age; //reschedule
-            //console.log('Data is '+age+'ms old. next check in '+retryIn+'ms');
-        }
         $timeout.cancel(timeoutHolder);
         timeoutHolder = $timeout($scope.watchDog, retryIn);
     };
@@ -273,6 +277,16 @@ function Live($scope, $http, $timeout, pref) {
             if (newval!==undefined && newval !== oldval)
                 $scope.watchDog();});
 
+    /*$scope.$watch('locationPath', function(path) {
+        console.log("spam"+path);
+      $location.search('q',path);
+    });*/
+    $scope.$watch(function() {
+      return $location.search().q;
+    }, function(path) {
+      $scope.locationPath = path;
+    });
+
 }
     </script>
 
@@ -294,6 +308,7 @@ function Live($scope, $http, $timeout, pref) {
         </select>
         <label for=specialFilter>Filters</label>
         <input id=search ng-model=filterSearch placeholder="Local Filter">
+        <input ng-model=locationPath>
         <label for=timeout>Refresh:</label><input style="display:none;" id=timeout size=2 value="3" ng-model="queueRefreshTime">
         <button ng-controller="Flash" ng-click="flashScreen();demand();flarp();">&#8623;</button>
         <span ng-class="{hide:!gettingFeedback}" class=loading>Loading</span>

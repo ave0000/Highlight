@@ -124,7 +124,7 @@ function isFresh($timestamp,$limit=5000) {
 
 while($keepGoing) {
 	try{
-		$popped = $redis->blpop('wantNewSummary',0);
+		$popped = $redis->blpop('wantNewData',0);
 		$entry = $popped[1];
 		if($entry != ''){
 			$splitted = split(':',$entry);
