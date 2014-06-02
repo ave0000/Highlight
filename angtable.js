@@ -85,13 +85,11 @@ function Summary($scope, $http, $timeout,pref) {
             data.forEach($scope.loadQueue);
         };
         requestSocket.onmessage = function(msg) {
-            var data = msg.data;
-            try{data = JSON.parse(data);}
-            catch(e) {console.log("couldn't parse json");}
+            var data;
+            try{data = JSON.parse(msg.data);}
+            catch(e) {/*console.log("couldn't parse json");*/}
             if(data && data.profile)
                 $scope.gotQueue(data);
-            else
-                console.log(msg);
         };
         requestSocket.onclose = function(a) {
             if($scope.hideSummary == true ) return true;
