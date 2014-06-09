@@ -336,7 +336,7 @@ function Live($scope, $http, $timeout, pref, $location) {
                 <td ng-if="showing.columns.indexOf('Age') > -1 " ng-bind="t.intime | timeSince"></td>
                 <td ng-if="showing.columns.indexOf('Score') > -1 " ng-bind="t | scoreCalc"></td>
                 <td ng-if="showing.columns.indexOf('Account') > -1 ">
-                    <i ng-class="{ 'rs-icon-error-indicator': t.watchlist}"></i>&nbsp;<a target="_blank" href="{{t.accountUrl}}">{{t.accountName}}</a></td>
+                    <a href="https://handoff.res.rackspace.com/watchlist/" ng-class="{ 'rs-icon-error-indicator': t.watchlist}"></a>&nbsp;<a target="_blank" href="{{t.accountUrl}}">{{t.accountName}}</a></td>
                 <td ng-if="showing.columns.indexOf('Subject') > -1 ">
                     <a ng-click="getComment(t)" ng-class="{toggleOn: t.lastComment}" class="toggle" alt="Last comment">+</a>
                     <a ng-href="{{t.ticketUrl}}">{{t.subject}}</a>
