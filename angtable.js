@@ -1,6 +1,6 @@
 "use strict";
 var serverHost = window.location.host;
-var redisHost = serverHost+':3000';
+var redisHost = serverHost+':3001';
 var app = angular.module('Highlight', []);
 
 //timceCalc runs a lot, needs to be efficient

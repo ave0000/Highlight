@@ -2,7 +2,7 @@ var redis = require('redis');
 require('console-ten').init(console);
 
 var WebSocketServer = require('ws').Server
-  , wss = new WebSocketServer({port: 3000});
+  , wss = new WebSocketServer({port: 3001});
 
 wss.on('connection', function(ws) {try{
     var clientHost = ws.upgradeReq.headers['x-forwarded-for'] || ws.upgradeReq.connection.remoteAddress;
