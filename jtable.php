@@ -173,7 +173,10 @@ if(isset($_REQUEST['showFilters'])){
 }
 
 if(isset($_REQUEST['userPrefs'])){
-    $user = $_COOKIE['COOKIE_last_login'];
+    if(isset($_COOKIE['COOKIE_last_login']))
+	$user = $_COOKIE['COOKIE_last_login'];
+    else	
+        $user = "noCookie";
     $prefs = getUserPrefs($user,$_REQUEST['userPrefs']);
     $jsonPrefs = json_encode($prefs);
     if($jsonPrefs !== false)
