@@ -48,7 +48,15 @@ function Live($scope, $http, $timeout, pref, $location) {
     var lastLen;
     $scope.$watch('showing.Tickets.length',function(len) {
         if(len != undefined && len != lastLen) {
-            window.parent.document.title = lastLen = len + ' - Highlight';
+            var str = window.parent.document.title;
+            var match = /^\d+/;
+            if(!str.match(match)) //initial case
+                str = len + ' - ' + str;
+            else{
+                str = str.replace(match,len);
+            }
+            window.parent.document.title = str;
+            lastLen = len;
         }
     });
 
@@ -79,8 +87,6 @@ function Live($scope, $http, $timeout, pref, $location) {
                 $scope.$apply(gotTicketList(sub.tickets));
                 $scope.timestamp = sub.timestamp;
                 //console.log("called gotTicketList on " + Date(sub.timestamp));
-            }else if(data == "core") {
-                $scope.demand();
             }else{
                 console.log("received:", data);
             }
@@ -144,7 +150,7 @@ function Live($scope, $http, $timeout, pref, $location) {
         t.ticket = t.number;
         t.ticketUrl=t.ticket_link+t.ticket;
         t.accountUrl=t.account_link+t.account_number;
-        if(t.source =="Lefty")
+        if(t.source =="ServermillProd")
             t.ticketUrl += "/edit"
 
         //timezone issue i guess?
@@ -164,7 +170,8 @@ function Live($scope, $http, $timeout, pref, $location) {
     function requestTickets(tickets) {
         //most of the code in this fn is to split the request into chunks
         var slice, req = "";
-        var url = "/api/v1/tickets?ticket_numbers="
+        //var url = "//pecan-api.res.rackspace.com/api/v1/tickets?ticket_numbers="
+        var url = "/pecan-api/api/v1/tickets?ticket_numbers="
         var atATime = 10;
         var i = 0;
         var n = tickets.length;
@@ -249,10 +256,9 @@ function Live($scope, $http, $timeout, pref, $location) {
 
         var httpRequest = $http({
             method: 'GET',
-            url: 'api/v1/lastcomment?ticket='+t.ticket,
+            url: '/api/v1/lastcomment?ticket='+t.ticket,
             cache: true,
         }).success(function(data, status){
-            console.log(data.comment || data);
             t.lastComment = data.comment || data;
         });
     }
@@ -304,11 +310,10 @@ function Live($scope, $http, $timeout, pref, $location) {
 <div ng-controller="Live" id="queueTable" class="rs-content rs-panel">
         <label for=queueList>Queue</label>
         <select id="queueList" ng-model="queueListSelect" ng-options="q.filter as q.profile for q in queueList">
-            <option value='All'>All</option>
+            <option value='All' selected="true">All</option>
         </select>
         <label for=specialFilter>Filters</label>
         <input id=search ng-model=filterSearch placeholder="Local Filter">
-        <input ng-model=locationPath>
         <label for=timeout>Refresh:</label><input style="display:none;" id=timeout size=2 value="3" ng-model="queueRefreshTime">
         <button ng-controller="Flash" ng-click="flashScreen();demand();flarp();">&#8623;</button>
         <span ng-class="{hide:!gettingFeedback}" class=loading>Loading</span>
@@ -354,7 +359,7 @@ function Live($scope, $http, $timeout, pref, $location) {
                 <div ng-show="timestamp" class="rs-table-overlay-message">No tickets here.</div>
                 <div ng-show="filterSearch" class="rs-table-overlay-message">
                     Filtered for {{filterSearch}}.</div>
-                <div ng-hide="timestamp" class="rs-table-overlay-message">Loading...</div>
+                <div ng-hide="timestamp" class="rs-table-overlay-message">Loading queue "{{queueListSelect}}"</div>
         </div>
     </div>
 </div>
