@@ -38,6 +38,7 @@ function ticketScore(t) {
         points = 9;
 
     // score is primarily based on ticket age ...
+    // this can go negative if the server time is ahead of client time
     var age = (Date.now() - t.intime) / 1000 / 60;
 
     //data collected, time to calc
