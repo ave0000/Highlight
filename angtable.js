@@ -1,5 +1,5 @@
 "use strict";
-var serverHost = window.location.host
+var serverHost = window.location.hostname
 var redisHost = serverHost+':3000';
 var app = angular.module('Highlight', []);
 
