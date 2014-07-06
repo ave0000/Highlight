@@ -70,7 +70,8 @@ function getCache($redis,$profile) {
 		return false;
 	}
 
-	$slick = 'http://localhost/pecan-api/api/v1';
+	$slick = 'http://localhost/pecan-api/api/v2';
+	#$slick = 'http://pecan-api.res.rackspace.com/api/v2';
 	$queueUrl = $slick . '/tickets/filter/' .urlencode($summary);
 	echo ": $queueUrl...";
 
