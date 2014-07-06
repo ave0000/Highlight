@@ -1,116 +1,132 @@
-//surprised this isn't built in js functionality ...
-function readCookie(name) {
-    var nameEQ = name + "=";
-    var ca = document.cookie.split(';');
-    for(var i=0;i < ca.length;i++) {
-        var c = ca[i];
-        while (c.charAt(0)==' ') c = c.substring(1,c.length);
-        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
-    }
-    return null;
-}
-
 var app = angular.module('personalQueue', ['Highlight']);
 
+app.directive('autoSave', function($timeout,$http) {
+    var cache = new Array();
+    var prefurl='jtable.php?userPrefset';
+    var save = function(key,val){
+        if(cache[key]!==undefined && cache[key] === val) return true;
+        var prefs = {last: Date.now()};
+        prefs[key] = val;
+        console.log('saving '+key+' as:"'+val+'"');
+        $http.post(prefurl,prefs);
+    }
+
+    return {
+        link: function($scope, $element, $attrs) {
+            var savePromise;
+            var key = $attrs.ngModel;
+            var expression = $attrs.autoSave || 'true';
+
+            $http.get(prefurl+'?userPrefs='+key)
+                .then(function (response) {
+                    if(response.data !==undefined && response.data[key] !== undefined) {
+                        console.log("AS found pref: " + key + " = '" + response.data[key] + "'");
+                        $scope[key] = cache[key] = response.data[key];
+                    }
+                });
+
+            $scope.$watch(key, function(newval, oldval) {
+                if (newval !== undefined && newval != oldval) {
+                    $timeout.cancel(savePromise);
+                    savePromise = $timeout(function() {
+                        if($scope.$eval(expression) !== false) {
+                            save(key,newval);
+                            $scope.$eval(expression); // run the callback
+                        }
+                    }, 750);
+                }
+            });
+        }
+    }
+});
+
 function Personal($scope, $http, $timeout, pref) {
+    var refreshTimeTimer;
+    var lastLen;
     $scope.tickets = [];
     $scope.rev = false;
-    $scope.refreshTime = 300;
-    //i got a cookie!
-    $scope.sso = readCookie('COOKIE_last_login');
+    $scope.refreshTime = 30;
     $scope.statusType = 4;
-    //$scope.title = $scope.showingTickets+" Tickets assigned to "+$scope.sso;
 
     $scope.columns =['Tickets','Age','Account','Subject','Status','OS'];
 
-    pref.watch('statusType',$scope);
+    $scope.$watch('showingTickets.length',function(len) {
+        if(len !== undefined && len != lastLen) {
+            var str = window.parent.document.title;
+            var reg;
+            var repl = len==0 ? "$1" : "$1/"+len;
+            if(str.indexOf("/") > -1) {
+                reg = /(^\d+)(\/\d+)/;
+            }
+            else //initial case
+                reg = /^(\d+)/;
+            str = str.replace(reg,repl)
+            
+            window.parent.document.title = str;
+            lastLen = len;
+        }
+    });
 
-    $scope.changeRefresh = function() {
-        //buffer modifications so we don't query on every keypress
-        $timeout.cancel($scope.refreshTimeTimer);
-        $scope.refreshTimeTimer = $timeout($scope.loadData, 1000);
+    //buffer modifications so we don't query on every keypress
+    $scope.changeRefresh = function(n) {
+        var refresh = n || 500;
+        $timeout.cancel(refreshTimeTimer);
+        refreshTimeTimer = $timeout(loadData, refresh);
     };
+
+    $scope.asdfasdf = function() {
+        console.log("called");
+        $scope.changeRefresh();
+    }
 
     var processTickets = function(data) {
-            data.forEach(processTicket);
-            return data;
+        data.forEach(processTicket);
+        return data;
     };
     var processTicket = function(t) {
-        t.statuses = '';
-        if(t.linux) t.statuses += 'L';
-        if(t.windows) t.statuses += 'W';
-        if(t.critical) t.statuses += 'C';
+        t.account = t["account.name"];
+        t.account_id = t["account.number"];
+        t.status = t["status.name"];
+        t.sev = t["severity.name"];
+        t.team = t["support_team.name"];
+        t.age = t.idle;
+        t.linux = t.has_linux_servers;
+        t.windows = t.has_windows_servers;
+        t.critical = t.has_critical_servers
         return t;
     };
 
-    $scope.loadData = function() {
-        var jsonQuery =       [
-                {
-                    "class": "Ticket.Ticket", 
-                    "load_arg": {
-                        "class": "Ticket.TicketWhere", 
-                        "values": [
-                            //[ "queue_name", "=", "Enterprise Services (All Teams)" ], 
-                            //[ "queue_name", "=", "Ent - All" ], 
-                            //"&",
-                            [ "current_assignee_sso", "=", $scope.sso], 
-                            "&",
-                            [ "status_type", "=", $scope.statusType ]
-                        ], 
-                        //"limit": 5,
-                        "offset": 0
-                    }, 
-                    "attributes": {
-                        "number":"number", 
-                        "account":"account.name",
-                        "account_id":"account.number", //needed for link
-                        "age":"age",
-                        "status":"status.name",
-                        //"statusColor":"status.color",
-                        "subject":"subject",
-                        "sev":"severity.name",
-                        "team":"support_team.name",
-                        //"assignee":"assignee.name",
-                        //"statuses":"all_status_flags",
-                        "linux":"has_linux_servers",
-                        "windows":"has_windows_servers",
-                        "critical":"has_critical_servers"
-                    }
-                }
-            ]
-
+    function loadData() {
         //don't start more requests if we're still pending
         if($scope.loading == true) return false;
         $scope.loading = true;
+        var url = '/api/v1/mytickets?status_type='+$scope.statusType;
 
-        //this would be a good place to sanity check
-        var options = 'queue='+$scope.queueListSelect;
-        var httpRequest = $http({
-            method: 'POST',
-            url: 'ctk/query.php',
-            data: jsonQuery,
-
-        }).success(function(data, status) {
-            if(data && data[0] && data[0].result) {
-                $scope.tickets = processTickets(data[0].result);
-            }else{
+        $http.get(url)
+        .success(function(data, status) {
+            try{
+                $scope.tickets = processTickets(data.response[0].result);
+                $scope.error = null;
+            }catch(e) {
+                $scope.error = data.response.message;
                 console.log('Did not receive ticket data');
-                console.log(data);
             }
-            $scope.loading = false;
-            $scope.timeOutHolder = $timeout($scope.loadData, $scope.refreshTime*1000);
         }).error(function(data, status) {
-            console.log(data);
+            $scope.error = status + ' ' + url;
+        }).finally(function(){
             $scope.loading = false;
-            $scope.timeOutHolder = $timeout($scope.loadData, $scope.refreshTime*1000);
+            $scope.changeRefresh($scope.refreshTime * 1000);
+            //$timeout.cancel($scope.timeOutHolder);
+            //$scope.timeOutHolder = $timeout(loadData, $scope.refreshTime*1000);
         });
     };
-    var sortPlatform = function(t) {
+
+    function sortPlatform(t) {
         var l = t.linux,w = t.windows;
         if(l && w) return 'both';
         if(l) return 'Linux';
         if(w) return 'Windows'};
-    var sortSev = function(t) {
+    function sortSev(t) {
         if(t.sev == 'Emergency') return 9000;
         else if(t.sev == 'Urgent') return 1000;
         else return 0;
@@ -135,5 +151,8 @@ function Personal($scope, $http, $timeout, pref) {
         if($scope.sortBy === column)
                 $scope.rev = !$scope.rev;
         $scope.sortBy = column;
-    }    
+    }
+
+    loadData();
+    //$scope.changeRefresh(); //initial kickoff
 }

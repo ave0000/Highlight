@@ -2,11 +2,11 @@
 <html>
 <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-    <title>Queue Highlights</title>
+    <title>Highlight</title>
     <link rel="stylesheet" type="text/css" href="https://eafdbc63c97ce6bec9ef-b0a668e5876bef6fe25684caf71db405.ssl.cf1.rackcdn.com/v1-latest/canon.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.0-beta.5/angular.min.js"></script>
     <script type='text/javascript' src="angtable.js"></script>
-    <script src="ctk/ctk.js"></script>
+    <script type='text/javascript' src="personal.js"></script>
     <link rel="stylesheet" type="text/css" href="css/queueview.css">
 </head>
 <body class=rs-responsive>
@@ -15,18 +15,19 @@
             <div class="rs-inner">
                 <div class="rs-container">
                     <div ng-app="personalQueue" class="">
-                        <div ng-controller="Personal" class="rs-content rs-panel">
-                            <span ng-bind="title">{{showingTickets}} tickets assigned to {{sso}}</span>
-                            <label for=ticketType>of type</label><select id=ticketType ng-model="statusType" ng-change="changeRefresh()">
-                            		<option value=4>Active</option>
-                            		<option value=8>Open</option>
-                            	</select>
-                            <label for=timeout>Refreshing in</label><input id=timeout size=2 value="30" ng-model="refreshTime" ng-change="changeRefresh()">
-                            <button ng-controller="Flash" ng-click="changeRefresh();flashScreen();">&#8623;</button>
+                        <div ng-controller="Personal" class="rs-content rs-panel" >
+                            <form ng-model="potato">
+                                <span ng-bind="title">{{showingTickets}} tickets assigned to {{sso}}</span>
+                                <label for=ticketType>of type</label><select id=ticketType ng-model="statusType" auto-save="asdfasdf()">
+                                		<option value=4>Active</option>
+                                		<option value=8>Open</option>
+                                	</select>
+                                <label for=timeout>Refreshing in</label><input id=timeout size=2 value="30" ng-model="refreshTime" auto-save="asdfasdf()">
+                                <button ng-controller="Flash" ng-click="changeRefresh();flashScreen();">&#8623;</button>
+                                <span ng-show="loading">Loading</span>
+                            </form>
 
-                            <span ng-show="loading">Loading</span>
-
-                            <table ng-init="loadData()"  class="rs-list-table rs-select-table ticketTable">
+                            <table class="rs-list-table rs-select-table ticketTable">
                                 <col class="rs-table-status">
                                 <col ng-repeat="c in columns" class="ticketColumn{{c}}">
 
@@ -57,12 +58,12 @@
                             </table>
                             <div class="rs-table-overlay rs-table-overlay-error" ng-show="error">
                                 <div class="rs-table-overlay-content">
-                                  <div class="rs-table-overlay-message"><i class="rs-icon-error-indicator"></i>This is an error message.</div>
+                                  <div class="rs-table-overlay-message"><i class="rs-icon-error-indicator"></i>{{error}}</div>
                                 </div>
                         </div>
                     </div>
                 </div>
-                <div>Submit <a target="_blank" href="https://github.rackspace.com/aver4919/Highlight/issues">requests/issues</a> or <a href="mailto:avery.scott@rackspace.com?Subject=Highlight">Email me</a></div>
+                <div><span>This tool is for my own experimentation, it is NOT officially sanctioned.  </span>Submit <a target="_blank" href="https://github.rackspace.com/aver4919/Highlight/issues">requests/issues</a> or <a href="mailto:avery.scott@rackspace.com?Subject=Highlight">Email me</a></div>
             </div>
         </div>
     </div>
