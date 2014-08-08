@@ -32,24 +32,76 @@ function getSummary($profile,$latency=-1) {
 
 //return a list of queues that there should be summaries for
 function getSummaryList() {
-    require_once('jtable.php');
-    $profiles = getProfileListShort();
+	//return json_decode(file_get_contents('profile_list.inc'));
+    $pecans = 'http://pecan-api.res.rackspace.com/api/v1/summary';
+    $pecans = json_decode(file_get_contents($pecans))->summary;
 
-    foreach($profiles as $q => $name){
-    	$profile = new stdClass();
-		$profile->profile = $q;
-		$profile->shortName = $name;
-		$profile->latencyCount = figureOutLatency($profile->profile);
-		$out[] = $profile;
-		unset($profile);
+    foreach($pecans as $q){
+    	$q->filter = figureOutFilter($q->profile);
+		$out[] = $q;
     }
     return $out;
 }
 
+function figureOutFilter($name) {
+	$filter = $name; //prepopulate in case we have no idea
+	$name = strtolower($name); //make life easier
+
+	if(strpos($name,'enterprise ')!==false) {
+		if(strpos($name,'aric')!==false)
+			return 'aric';
+		if(strpos($name,'cloud')!==false)
+			return 'cloud';
+		$filter = str_replace('enterprise ','ent+',$name);
+		$filter = str_replace('f1000','f1k',$filter);
+		$filter = str_replace(' only','',$filter);
+		$filter = str_replace(' (','+',$filter);
+		$filter = str_replace(')','',$filter);
+		return $filter;
+	}
+
+	//Teams need explicit platform filters because damn you.
+	//seriously ... why can't this come from the api?
+	$linuxTeams = array('n','o','p','v','x');
+	if(strpos($name,'team')!==false) {
+		$filter = str_replace("team ",'',$name);
+		if(strpos($name,' - ')!==false) {
+			$filter = str_replace(' - ','+',$filter);
+		}else if(in_array( $filter, $linuxTeams)) {
+			$filter .= '+linux';
+		}else{
+			$filter .= '+windows';
+		}
+		$filter = 'ent+'.$filter;
+		return $filter;
+	}
+
+	if(strpos($name,'dba - ')!==false) {
+		$filter = str_replace('dba - ','',$name);
+		return $filter;
+	}
+
+	$knowns = array(
+			'virtualization'=>'virt',
+			'critical sites'=>'cas',
+			'cloudbuilders support'=>'nova',
+			'dba - '=>'',
+			'storage - '=>'',
+			'segment support'=>'segsupp',
+		);
+	foreach($knowns as $known=>$fix){
+		if(strpos($name,$known)!==false) {
+			$filter = str_replace($known,$fix,$name);
+			return $filter;
+		}
+	}
+
+	return 'broken';
+}
+
 //based on https://wiki.rackspace.corp/Enterprise/tvdisplay
-//why can't they all just be "All"?
 function figureOutLatency($name) {
-	//assume table is sorted by priority,
+	//table is sorted by priority,
 	//take the first match
 	$latencies = array(
 		'Team'=>10,

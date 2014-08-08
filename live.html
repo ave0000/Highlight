@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Queue Highlights</title>
+    <link rel="stylesheet" type="text/css" href="https://eafdbc63c97ce6bec9ef-b0a668e5876bef6fe25684caf71db405.ssl.cf1.rackcdn.com/v1-latest/canon.min.css">
+    <link rel="stylesheet" type="text/css" href="css/queueview.css">
+    <script type='text/javascript' src="//ajax.googleapis.com/ajax/libs/angularjs/1.3.0-beta.5/angular.min.js"></script>
+    <script type='text/javascript' src="angtable.js"></script>
+    <script type='text/javascript' src="score/score.js"></script>
+    <style>
+    .pulsate {
+        background:red;
+        transition:  60s ease-in;
+    }
+    </style>
+    <script language="javascript">
+"use strict";
+
+app.config(['$locationProvider',
+    function($locationProvider){
+        $locationProvider.html5Mode(true);
+    }]);
+
+app.directive('enablePulsating', function($timeout) {
+  return{
+    link: function(scope,element,attrs) {
+      scope.$watch('timestamp', function(newVal, oldVal) {
+      if(newVal != oldVal) {
+        element.removeClass('pulsate');
+        $timeout(function(){element.addClass('pulsate');},30000);
+      }
+    })
+    }
+  }
+});
+
+function Live($scope, $http, $timeout, pref, $location) {
+    $scope.queueRefreshTime = 15;
+    $scope.predicate = 'Score';
+    $scope.reverse = true;
+    $scope.feedbacks = [];
+    $scope.queueList = [];
+    $scope.columns = ['Tickets','Age','Score','Account','Subject','Status','OS'];
+
+    $http({
+        method: 'GET',
+        url: 'profile_list.inc',
+        cache: true,
+    }).success(function(data, status){$scope.queueList = data;});
+
+    var lastLen;
+    $scope.$watch('showing.Tickets.length',function(len) {
+        if(len != undefined && len != lastLen) {
+            var str = window.parent.document.title;
+            var match = /^\d+/;
+            if(!str.match(match)) //initial case
+                str = len + ' - ' + str;
+            else{
+                str = str.replace(match,len);
+            }
+            window.parent.document.title = str;
+            lastLen = len;
+        }
+    });
+
+    //this should be an angular service
+    var jsonSocket;
+    function pubSocket() {
+        if(jsonSocket && jsonSocket.readyState == 1) {
+            jsonSocket.send(JSON.stringify(["bye"]));
+            jsonSocket.close();
+        }
+
+        jsonSocket = new WebSocket("ws://"+redisHost);
+
+        var profile = "ticketList:"+$scope.queueListSelect;
+        jsonSocket.onopen = function() {
+            $scope.demand();
+        };
+        jsonSocket.onmessage = function(message) {
+            if(this !== jsonSocket) //race condition?
+                return this.close();
+
+            var data = message.data;
+            //sanity check and then apply the message
+            try{var sub = JSON.parse(data);}
+            catch(e) {console.log(data)}
+
+            if(sub && Array.isArray(sub.tickets)) {
+                $scope.$apply(gotTicketList(sub));
+
+                //console.log("called gotTicketList on " + Date(sub.timestamp));
+            }else{
+                console.log("received:", data);
+            }
+        };
+        jsonSocket.onclose = function(a) {
+            console.log(a);
+            if(this === jsonSocket)
+                setTimeout(function(){pubSocket()},4000);
+        }
+        jsonSocket.sendj = function(o) {
+            try{return jsonSocket.send(JSON.stringify(o));}
+            catch(e) {console.log(e);}
+        }
+    }
+    pubSocket();
+
+    $scope.demand = function() {
+        if(jsonSocket.readyState != WebSocket.OPEN) return false;
+
+        var profile = "ticketList:"+$scope.queueListSelect;
+        if(jsonSocket.subscribed != profile) {
+            $scope.feedbacks = []; //blank out the queue
+            $scope.timestamp = '';
+            jsonSocket.sendj(["selectProfile", profile]);
+            jsonSocket.subscribed = profile;
+            console.log("WebSocket connected and subscribed to "+profile+" updates.");
+        }else jsonSocket.sendj(["rpush","wantNewData",profile]);
+    }
+
+    var timeoutHolder;
+    $scope.watchDog = function() {
+        var retryIn = $scope.queueRefreshTime*1000;
+        var stamp = $scope.timestamp;
+        var callback = $scope.demand;
+
+        if(stamp<0) //prevent time travel
+            stamp = 0; //actually its because desktop time isn't server time
+
+        var age = Date.now() - stamp; //how long ago was it?
+
+        if(age > retryIn)
+            callback();
+        else
+            retryIn -= age; //reschedule
+        $timeout.cancel(timeoutHolder);
+        timeoutHolder = $timeout($scope.watchDog, retryIn);
+    };
+
+    $scope.changeRefresh = function() {//modifications buffer
+        $timeout.cancel($scope.refreshTimeTimer);
+        $scope.refreshTimeTimer = $timeout($scope.demand,400);
+    }
+
+    //any one-time doctoring of fields
+    $scope.addTicket = function(t) {
+        if(!t.severity || t.severity == "normal") 
+            t.severity = "standard";
+        else
+            t.severity = t.severity.toLowerCase();
+        t.accountName = t.account_name;
+        t.ticket = t.number;
+        t.ticketUrl=t.ticket_link+t.ticket;
+        t.accountUrl=t.account_link+t.account_number;
+        if(t.account_link =="https://us.cloudcontrol.rackspacecloud.com/customer/")
+            t.ticketUrl += "/edit"
+
+        //timezone issue i guess?
+        t.intime = Date.parse(t.intime) + 18000000;
+
+        //don't make duplicates
+        var tickets = $scope.feedbacks;
+        for (var i=0;i<tickets.length;i++)
+            if(tickets[i] && tickets[i].ticket == t.ticket){
+                angular.extend(tickets[i],t);
+                return;
+            }
+        
+        tickets.push(t);
+    }
+
+    function requestTickets(tickets) {
+        //most of the code in this fn is to split the request into chunks
+        var slice, req = "";
+        //var url = "//pecan-api.res.rackspace.com/api/v1/tickets?ticket_numbers="
+        var url = "/pecan-api/api/v1/tickets?ticket_numbers="
+        var atATime = 10;
+        var i = 0;
+        var n = tickets.length;
+
+        while (i < n) {
+            slice = tickets.slice(i, i += atATime);
+            req = slice.join("&ticket_numbers=");
+            $http.get(url+req).then(function(response){
+                var d = response.data;
+                if(d && d.tickets)
+                    d.tickets.forEach($scope.addTicket);
+            });
+        }
+    }
+
+    var gotTicketList = function(sub) {
+        $scope.timestamp = sub.timestamp;
+        var tickets = sub.tickets;
+        var old = $scope.feedbacks;
+        var len = old.length;
+        var newt = [];
+        var expiredt = [];
+
+        tickets.forEach(function(t) {
+            var i = len;
+            while(i--)
+                if(old[i].ticket == t) {
+                    return //angular.extend(old[i],tobj);
+                }
+            old.push({'ticket':t});
+            newt.push(t);
+        });
+        while(len--){//if it doesn't exist in the list,
+            var ticket = old[len].ticket
+            if(tickets.indexOf(ticket) == -1) {
+                expiredt.push(ticket);
+                old.splice(len,1);//remove it.
+            }
+        }
+        if(newt.length > 0) {
+            console.log("new " + newt);
+            requestTickets(newt);
+        }
+        if(expiredt.length > 0) {
+            console.log("expired " + expiredt);
+        }
+    }
+
+    var sortSev = function(t) {
+        if(t.severity == 'emergency') return 9000;
+        else if(t.severity == 'urgent') return 1000;
+        else return 0;
+    };
+
+    //some columns don't sort right
+    //override them here
+    $scope.getOrder = function() {
+        switch($scope.predicate){
+            case undefined:
+            case '': 
+            case 'Score': return ticketScore;
+            case 'Subject': return 'subject';
+            case 'Account': return 'accountName';
+            case 'Status': return 'status';
+            case 'Age': return 'intime';
+            case 'OS': return 'calculated_platform';
+            case 'Tickets': return sortSev;
+            default: return $scope.predicate;
+        }
+    }
+
+    $scope.changeSort = function(column) {
+        if($scope.predicate === column) $scope.reverse = !$scope.reverse;
+        $scope.predicate = column;
+    }
+
+    $scope.getComment = function(t) {
+        //if it's already showing, then toggle it off
+        if(t.lastComment) return t.lastComment = "";
+
+        t.lastComment = "Fetching last comment";
+
+        $http.get('/api/v1/lastcomment?ticket='+t.ticket,{cache: true})
+            .success(function(data, status){t.lastComment = data.comment || data;});
+    }
+
+    $scope.showing = {columns:$scope.columns};
+    $scope.flarp = function() {
+        //$scope.columns = ['Tickets'];
+        //$scope.showing.columns.pop();// = ['Tickets','Age','Score','Account','Subject','Status'];
+        jsonSocket.send(JSON.stringify(["stats"]));
+    }
+
+
+
+    //refresh the queue when any of these are changed (blindly, but buffered)
+    $scope.$watch('queueListSelect + queueRefreshTime + filterListSelect', 
+        function(){$scope.changeRefresh();} );
+
+    $scope.$watch('timestamp',function(newval, oldval) {
+            if (newval!==undefined && newval !== oldval)
+                $scope.watchDog();});
+
+    /*$scope.$watch('locationPath', function(path) {
+        console.log("spam"+path);
+      $location.search('q',path);
+    });*/
+    $scope.$watch(function() {
+      return $location.search().q;
+    }, function(path) {
+      $scope.locationPath = path;
+    });
+
+}
+    </script>
+
+</head>
+<body class=rs-responsive>
+  <div class="rs-wrapper">
+
+  <div class="rs-body">
+  <div class="rs-inner">
+    <div class="rs-container">
+  <div ng-app="Highlight" >
+    <!--<div ng-controller="Summary">
+        <a ng-show="hideSummary" ng-click="hideSummary = !hideSummary" alt="Hide summary cards">Show Summaries</a>
+    </div>-->
+<div ng-controller="Live" id="queueTable" class="rs-content rs-panel">
+        <label for=queueList>Queue</label>
+        <select id="queueList" ng-model="queueListSelect" ng-options="q.filter as q.profile for q in queueList" auto-save>
+            <option value='All' selected="true">All</option>
+        </select>
+        <label for=specialFilter>Filters</label>
+        <input id=search ng-model=filterSearch placeholder="Local Filter" auto-save>
+        <input type=hidden ng-model=reverse auto-save>
+        <input type=hidden ng-model=predicate auto-save>
+        <label for=timeout>Refresh:</label><input style="display:none;" id=timeout size=2 value="3" ng-model="queueRefreshTime" auto-save>
+        <button ng-controller="Flash" ng-click="flashScreen();demand();flarp();">&#8623;</button>
+        <span ng-class="{hide:!gettingFeedback}" class=loading>Loading</span>
+        <span enable-Pulsating ng-bind="timestamp|date:'M/d/yy h:mm:ss a'"></span> 
+        <table class="rs-list-table rs-select-table ticketTable">
+            <col class="rs-table-status">
+            <col ng-repeat="c in showing.columns" class="ticketColumn{{c}}">
+            <tr>
+               <th class="rs-table-status"></th>
+               <th ng-repeat="c in showing.columns">
+                    <a ng-click="changeSort(c)" class="rs-table-sort "
+                        ng-class="{'rs-table-sort-desc': predicate==c&&reverse, 'rs-table-sort-asc': predicate==c}">
+                        <span class="rs-table-sort-text">{{c}}</span>
+                        <span ng-if="c == 'Tickets'">{{showing.Tickets.length}}</span>
+                        <span class="rs-table-sort-indicator"></span>
+                    </a>
+                </th>
+            </tr>
+            <tr ng-repeat="t in (showing.Tickets = (feedbacks |filter:{$:filterSearch} |orderBy:getOrder():reverse))">
+                <td class="rs-table-status rs-table-status-ok" 
+                    ng-class='{
+                        "rs-table-status-warning": t.severity =="urgent",
+                        "rs-table-status-error ": t.severity == "emergency" }'></td>
+                <td ng-if="showing.columns.indexOf('Tickets') > -1 "><a href="{{t.ticketUrl}}">{{t.ticket}}</a></td>
+                <td ng-if="showing.columns.indexOf('Age') > -1 " ng-bind="t.intime | timeSince"></td>
+                <td ng-if="showing.columns.indexOf('Score') > -1 " ng-bind="t | scoreCalc"></td>
+                <td ng-if="showing.columns.indexOf('Account') > -1 ">
+                    <a href="https://handoff.res.rackspace.com/watchlist/" ng-class="{ 'rs-icon-error-indicator': t.watchlist}"></a>&nbsp;<a target="_blank" href="{{t.accountUrl}}">{{t.accountName}}</a></td>
+                <td ng-if="showing.columns.indexOf('Subject') > -1 ">
+                    <a ng-click="getComment(t)" ng-class="{toggleOn: t.lastComment}" class="toggle" alt="Last comment">+</a>
+                    <a ng-href="{{t.ticketUrl}}">{{t.subject}}</a>
+                    <div ng-show="t.lastComment" class="lastComment " ng-bind-html="t.lastComment|trust"></div>
+                </td>
+                <td ng-if="showing.columns.indexOf('Status') > -1 "><span ng-bind="t.status" ng-class="t.status | noSpaces" class="rs-status"></span></td>
+                <td ng-if="showing.columns.indexOf('OS') > -1 ">
+                    <span ng-if="t.linux" class="os-linux">L</span>
+                    <span ng-if="t.windows" class="os-windows">W</span>
+                </td>
+            </tr>
+        </table>
+        <div class="rs-table-overlay" ng-hide="showing.Tickets.length">
+            <div class="rs-table-overlay-content">
+                <div ng-show="timestamp" class="rs-table-overlay-message">No tickets here.</div>
+                <div ng-show="filterSearch" class="rs-table-overlay-message">
+                    Filtered for {{filterSearch}}.</div>
+                <div ng-hide="timestamp" class="rs-table-overlay-message">Loading queue "{{queueListSelect}}"</div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

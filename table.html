@@ -4,14 +4,22 @@
 <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <title>Queue Highlights</title>
+    <link rel="stylesheet" type="text/css" href="https://eafdbc63c97ce6bec9ef-b0a668e5876bef6fe25684caf71db405.ssl.cf1.rackcdn.com/v1-latest/canon.min.css">
     <link rel="stylesheet" type="text/css" href="css/queueview.css">
-    <script type='text/javascript' src="angular.js"></script>
+
+    <script type='text/javascript' src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.0-beta.5/angular.min.js"></script>
     <script src="angtable.js"></script>
+
 </head>
-<body>
-  <div ng-app="Highlight">
+<body class=rs-responsive>
+  <div class="rs-wrapper">
+
+  <div class="rs-body">
+  <div class="rs-inner">
+    <div class="rs-container">
+  <div ng-app="Highlight" >
 <div ng-controller="Summary">
-<a ng-show="hideSummary" ng-click="hideSummary = !hideSummary" alt="Hide summary cards" style="background:#a8a8a8;float:right;">Show Summaries</a>
+<a ng-show="hideSummary" ng-click="hideSummary = !hideSummary" alt="Hide summary cards">Show Summaries</a>
 <table class="statTable" ng-if="!hideSummary">
     <tr>
         <th><a ng-click="$parent.hideSummary = !hideSummary" alt="Hide summary cards">Hide</a></th>
@@ -27,7 +35,7 @@
     </tr>
 </table>
 </div>
-<div ng-controller="Dynamic" id="queueTable">
+<div ng-controller="Dynamic" id="queueTable" class="rs-content rs-panel">
     <div ng-show="!hideFilters">
         <!--<input type=button value="X" ng-click="hideFilters = !hideFilters;">-->
         <label for=queueList>Queue:</label>
@@ -47,55 +55,40 @@
         <span ng-class="{hide:!gettingFeedback}" class=loading>Loading</span>
 	<span style="background: red;">OneView, and thus Highlight no longer provides cloud tickets.  Alternatives: <a href="https://encore.rackspace.com">Encore</a>, <a href="http://rancore.res.rackspace.com/">RanCORE</a></span>
     </div>
-<table class=ticketTable>
-           <col class="ticketColumnId">
-           <col class="ticketColumnAge">
-           <col class="ticketColumnScore">
-           <col class="ticketColumnAccount">
-           <col class="ticketColumnSubject">
-           <col class="ticketColumnTeam">
-           <col class="ticketColumnStatus">
-           <col class="ticketColumnPlatforms">
+    <div ng-bind="Object.keys(feedbacks)">test</div>
+<table class="rs-list-table rs-select-table ticketTable">
+    <col class="rs-table-status">
+    <col ng-repeat="c in columns" class="ticketColumn{{c}}">
+
     <tr>
-        <th><a ng-click="predicate = 'Ticket'; reverse=!reverse" 
-            ng-class="{arrow_box: predicate=='Ticket'}" 
-            >Tickets {{showingTickets.length }}</a></th>
-        <th><a ng-click="predicate = 'Age'; reverse=!reverse"
-            ng-class="{arrow_box: predicate=='Age'}" 
-            >Age</a></th>
-        <th><a ng-click="predicate = 'Score'; reverse=!reverse" 
-            ng-class="{arrow_box: predicate=='Score'}"
-            >Score</a></th>
-        <th><a ng-click="predicate = 'aname'; reverse=!reverse" 
-            ng-class="{arrow_box: predicate=='aname'}"
-            >Account</a></th>
-        <th><a ng-click="predicate = 'subject'; reverse=!reverse"
-            ng-class="{arrow_box: predicate=='subject'}"
-            >Subject</a></th>
-        <th><a ng-click="predicate = 'team'; reverse=!reverse"
-            ng-class="{arrow_box: predicate=='team'}"
-            >Team</a></th>
-        <th><a ng-click="predicate = 'status'; reverse=!reverse"
-            ng-class="{arrow_box: predicate=='status'}"
-            >Status</a></th>
-        <th><a ng-click="predicate = 'Platform'; reverse=!reverse"
-            ng-class="{arrow_box: predicate=='Platform'}"
-            >OS</a></th>
+       <th class="rs-table-status"></th>
+       <th ng-repeat="c in columns">
+            <a ng-click="changeSort(c)" class="rs-table-sort "
+                ng-class="{'rs-table-sort-desc': predicate==c&&reverse, 'rs-table-sort-asc': predicate==c}">
+                <span class="rs-table-sort-text">{{c}}</span>
+		<span ng-if="c == 'Tickets'">{{showing.Tickets.length}}</span>
+		<span class="rs-table-sort-indicator"></span>
+	    </a>
+        </th>
     </tr>
-    <tr ng-repeat="t in (showingTickets = (feedbacks |filter:filterSearch |orderBy:getOrder():reverse))">
-        <td><a target="_blank" href="{{t.ticketUrl}}" class="status {{t.sev}}">{{t.ticket}}</a></td>
+    <tr ng-repeat="t in (showing.Tickets = (feedbacks |filter:{$:filterSearch} |orderBy:getOrder():reverse))">
+        <td class="rs-table-status rs-table-status-ok" 
+            ng-class='{ 
+                "rs-table-status-warning": t.sev.toLowerCase()=="urgent",
+                "rs-table-status-error ": t.sev.toLowerCase()=="emergency" }'></td>
+        <td><a href="{{t.ticketUrl}}">{{t.ticket}}</a></td>
         <td ng-bind="t.age_seconds | timeCalc"></td>
         <td ng-bind="t.score"></td>
-        <td ng-class="{ onWatchIcon: t.OnWatch==1}"><a target="_blank" href="{{t.accountUrl}}">{{t.aname}}</a></td>
+        <td><i ng-class="{ 'rs-icon-error-indicator': t.OnWatch==1}"></i>&nbsp;<a target="_blank" href="{{t.accountUrl}}">{{t.aname}}</a></td>
         <td>
-            <a ng-click="getComment(t)" ng-class="{toggleOn: t.lastComment}" class="toggle" alt="Last comment">+</a> {{t.subject}}
-            <pre ng-show="t.lastComment" class="lastComment" ng-bind="t.lastComment"></pre>
+            <a ng-click="getComment(t)" ng-class="{toggleOn: t.lastComment}" class="toggle" alt="Last comment">+</a>
+            <a href="{{t.ticketUrl}}">{{t.subject}}</a>
+            <pre ng-show="t.lastComment" class="lastComment " ng-bind="t.lastComment"></pre>
         </td>
-        <td ng-bind="t.team"></td>
-        <td><span ng-bind="t.status" ng-class="t.status | noSpaces" class="status"></span></td>
+        <td><span ng-bind="t.status" ng-class="t.status | noSpaces" class="rs-status"></span></td>
         <td>
-            <span ng-if="t.platform == 'linux' || t.platform == 'both'" class="os-linux">L</span>
-            <span ng-if="t.platform == 'windows' || t.platform == 'both'" class="os-windows">W</span>
+            <span ng-if="t.linux" class="os-linux">L</span>
+            <span ng-if="t.windows" class="os-windows">W</span>
         </td>
     </tr>
 </table>

@@ -22,96 +22,60 @@ function getCachedProfile($profile) {
     return json_decode($boop);
 }
 
-function getProfileData($profile) {
+function getTicketList($redis,$profile) {
     $listName = 'ticketList:'.$profile;
-    $redis = new Redis();
-    $redis->pconnect('127.0.0.1',6379);
     $list = $redis->get($listName);
-    if($list === false || $list == false) {
+
+    if($list === false || $list == false ) {
+	echo $list;
         $redis->rpush('wantNewQueue',$profile);
         return "try again soon";
     }
 
-    $list = json_decode($list);
-    $out = array();    
-    foreach($list as $t)
-        $out[] = (object) $redis->hgetall('ticket:'.$t);
-    
-    return $out;
+    return json_decode($list)->tickets;
 }
 
-//a list of profiles, minus the ones we don't want
-function getProfileList(){
-    if(false !== ($hasCache = getCachedProfile('profileList'))) 
-        return $hasCache;
+function getProfileData($profile) {
+    $redis = new Redis();
+    $redis->pconnect('127.0.0.1',6379);
 
-    include('profile_list.inc');
-    $out = array();
-    $profiles = array_keys($qs);
-    $excludes = array('Corp','Strat','Priority','Testing');
-    $e = count($excludes);
+    $list = getTicketList($redis,$profile);
 
-    //Rewrite me with a better method of filtering
-    foreach($profiles as $q) {
-    	$hasBad = false;
-    	for($i=0;$i<$e;$i++){
-        	if(strpos($q, $excludes[$i])!==FALSE){
-    			$hasBad = true;
-    			break;
-    		}
-    	}
-    	if(!$hasBad)
-    		$out[$q] = $q;
-    } 
-    saveCache($out,'profileList');
+    if(!$list || !is_array($list) )
+        return $profile.":".$list;
+
+    $out = array(); 
+    foreach($list as $t)
+        $out[] = (object) $redis->hgetall('ticket:'.$t);
     return $out;
 }
 
 //scrunch the profile list names into an associative array
 function getProfileListShort() {
-    $trims = array(
-        'Enterprise '=>'',
-        //'Team'=>'T:',
-        'Linux'=>'L',
-        'Windows'=>'W',
-	'Team '=>'',
-	'Only'=>'',
-    	'Implementation'=>'Imp',
-    	'Latin America'=>'LATAM',
-	'Critical Sites'=>'CAS',
-	'DBA - '=>'',
-	'Storage - '=>'',
-	'Virtualization'=>'Virt',
-	'Segment '=>'Seg',
-	'Support'=>'Sup'
-    );
-    $profiles = getProfileList();
-
-    foreach($profiles as $q => $name){
-            $name = str_replace(array_keys($trims),$trims,$name);
-            $profiles[$q] = trim($name);
+    require_once('summary.php');
+    $map = getSummaryList();
+    $out = array();
+    foreach($map as $q) {
+        $out[$q->profile] = $q->filter;
     }
-    return $profiles;
+    return $out;
 }
 
 function selectProfile($requested) {
-    $profiles = getProfileListShort();
-
-    if(in_array($requested,$profiles))
-        return array_search($requested,$profiles);
-    else if(in_array($requested,array_keys($profiles)))
-        return $requested;
-
-    return 'Enterprise All';
-}
-
-//Get data for several queues
-function getQueueData($profiles) {
-    $data = array();
-    foreach($profiles as $profile => $name) {
-        $data[$name] = getProfileData($profile);
+    require_once('summary.php');
+    $profiles = getSummaryList();
+    //var_dump($profiles);
+    foreach ($profiles as $p) {
+        if(
+            $requested == $p->profile ||
+            $requested == $p->shortName ||
+            $requested == $p->filter 
+        )
+            return $p->profile;
     }
-    return $data;
+
+    echo '"'.$requested.'"';
+    return 'Enterprise All';
 }
 
 // do some postprocessing on the queue
@@ -121,18 +85,21 @@ function getQueueData($profiles) {
 // make shortened versions of some fields,etc
 function processTest($q,$profile) {
     if(!is_array($q) || count($q)==0) return $q;
+    $out = array();
     require_once('score/score.php');
     $now = time();
 
     // * populate age and score fields, because they're live data
     // * shorten subject and account because some are too long
-    // * cloud tickets come in with an account name of "false" .. this is stupid
     foreach ($q as $t){
+        /*
         if(property_exists($t,'fepochtime'))
             $age =  $now - $t->fepochtime;
 	    if(property_exists($t,'age_seconds'))
                 $age = max($age,$t->age_seconds);
             $t->age_seconds = $age;
+        */
+
         $t->score = getScore($t,$profile);
         $t->subject = substr($t->subject, 0, 100);
         if(!property_exists($t,'aname') || $t->aname == false || $t->aname == 'null')
@@ -174,16 +141,14 @@ if(isset($_REQUEST['showFilters'])){
 
 if(isset($_REQUEST['userPrefs'])){
     if(isset($_COOKIE['COOKIE_last_login']))
-	$user = $_COOKIE['COOKIE_last_login'];
-    else	
-        $user = "noCookie";
+        $user = $_COOKIE['COOKIE_last_login'];
+    else $user = '';
     $prefs = getUserPrefs($user,$_REQUEST['userPrefs']);
     $jsonPrefs = json_encode($prefs);
     if($jsonPrefs !== false)
         echo $jsonPrefs;
 }
-if(isset($_REQUEST['userPrefset']) && isset($_POST) && isset($_COOKIE['COOKIE_last_log'])){
-    //easy to fake :/
+if(isset($_REQUEST['userPrefset']) && isset($_POST) &&isset($_COOKIE['COOKIE_last_login']) ){
     $user  = $_COOKIE['COOKIE_last_login'];
     $postdata = file_get_contents("php://input");
     $prefs = json_decode($postdata);
@@ -200,7 +165,6 @@ if(isset($_REQUEST['queue'])) {
     if(isset($_REQUEST['filter'])) {
         require_once('filters.php');
         $filters = json_decode($filters);
-        $filName = $_REQUEST['filter'];
         //do filter
     	foreach($filters as $f){
     		if($f->name == $_REQUEST['filter']) {
