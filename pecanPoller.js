@@ -9,7 +9,7 @@ var db = redis.createClient(REDIS_URL);
 db.on("error", function(err) {
   console.error("Error connecting to redis", err);
 });
-db.select(1);
+//db.select(1);
 
 function saveWithStamp(db,name,data) {
 	data.timestamp = Date.now();
@@ -23,19 +23,25 @@ function saveWithStamp(db,name,data) {
 function jget(url,callback) {
 	http.get(url,function(res){
 		var data = [];
-		res.on('data',function(chunk){data.push(chunk);});
-		res.on('end',function(){
-			try{
-				data = JSON.parse(data.join(''));
-				data.url = url;
-			}catch(e){
-				console.log("Couldn't parse json from %s",url);
-				data = ''
-			}
-			callback(data);
-		});
+		if(res.statusCode !== 200) {
+			console.log("Bad status: ", res.statusCode, url);
+			return callback(data);
+		}else{
+			res.on('data',function(chunk){data.push(chunk);});
+			res.on('end',function(){
+				try{
+					data = JSON.parse(data.join(''));
+					data.url = url;
+				}catch(e){
+					console.log("Couldn't parse json from %s",url);
+					data = ''
+				}
+				callback(data);
+			});
+		}
 	}).on('error',function(e){
 		console.log("Error: %s",e.message);
+		callback([]);
 	}).setTimeout(30000);
 }
 
@@ -50,13 +56,13 @@ function saveSummary(db,profile,data) {
 }
 
 function processQueue(data) {
-	var profile = 'ticketList:'+data.url.split('/').slice(-1)[0];
-
-	if(Array.isArray(data.tickets)) {
+	if(data && data.url && Array.isArray(data.tickets)) {
+		var profile = 'ticketList:'+data.url.split('/').slice(-1)[0];
 		var tickets =
 			data.tickets.map(function(t) {return t['_id'];});
-		saveWithStamp(db,profile,tickets);
-	}
+		saveWithStamp(db,profile,{tickets:tickets});
+	}else
+		console.log("Could not process data:",data);
 
 	process.nextTick(popNext);
 }
@@ -70,7 +76,8 @@ function isFresh(timeStamp,limit) {
 }
 
 function newSummary(profile) {
-	if(typeof(profile)==='undefined') return false;
+	if(typeof(profile)==='undefined' || profile == "undefined") 
+		return process.nextTick(popNext);
 
 	db.get('ticketList:'+profile+':timestamp',function(err,reply){
 		if(!isFresh(reply,30000)) {
@@ -87,7 +94,8 @@ function newSummary(profile) {
 
 function popNext() {
 	db.blpop('wantNewData', 0, function(err, data) {
-		newSummary(data[1]);
+		var profile = data[1].split(':')[1];
+		newSummary(profile);
 	});
 }
 popNext();
