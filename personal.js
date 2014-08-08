@@ -1,46 +1,6 @@
 var app = angular.module('personalQueue', ['Highlight']);
 
-app.directive('autoSave', function($timeout,$http) {
-    var cache = new Array();
-    var prefurl='jtable.php?userPrefset';
-    var save = function(key,val){
-        if(cache[key]!==undefined && cache[key] === val) return true;
-        var prefs = {last: Date.now()};
-        prefs[key] = val;
-        console.log('saving '+key+' as:"'+val+'"');
-        $http.post(prefurl,prefs);
-    }
-
-    return {
-        link: function($scope, $element, $attrs) {
-            var savePromise;
-            var key = $attrs.ngModel;
-            var expression = $attrs.autoSave || 'true';
-
-            $http.get(prefurl+'?userPrefs='+key)
-                .then(function (response) {
-                    if(response.data !==undefined && response.data[key] !== undefined) {
-                        console.log("AS found pref: " + key + " = '" + response.data[key] + "'");
-                        $scope[key] = cache[key] = response.data[key];
-                    }
-                });
-
-            $scope.$watch(key, function(newval, oldval) {
-                if (newval !== undefined && newval != oldval) {
-                    $timeout.cancel(savePromise);
-                    savePromise = $timeout(function() {
-                        if($scope.$eval(expression) !== false) {
-                            save(key,newval);
-                            $scope.$eval(expression); // run the callback
-                        }
-                    }, 750);
-                }
-            });
-        }
-    }
-});
-
-function Personal($scope, $http, $timeout, pref) {
+function Personal($scope, $http, $timeout) {
     var refreshTimeTimer;
     var lastLen;
     $scope.tickets = [];
@@ -52,18 +12,13 @@ function Personal($scope, $http, $timeout, pref) {
 
     $scope.$watch('showingTickets.length',function(len) {
         if(len !== undefined && len != lastLen) {
+            lastLen = len;
             var str = window.parent.document.title;
-            var reg;
             var repl = len==0 ? "$1" : "$1/"+len;
-            if(str.indexOf("/") > -1) {
-                reg = /(^\d+)(\/\d+)/;
-            }
-            else //initial case
-                reg = /^(\d+)/;
+            var reg = (str.indexOf("/") > -1) ? /(^\d+)(\/\d+)/ : /^(\d+)/;
             str = str.replace(reg,repl)
             
             window.parent.document.title = str;
-            lastLen = len;
         }
     });
 
@@ -73,11 +28,6 @@ function Personal($scope, $http, $timeout, pref) {
         $timeout.cancel(refreshTimeTimer);
         refreshTimeTimer = $timeout(loadData, refresh);
     };
-
-    $scope.asdfasdf = function() {
-        console.log("called");
-        $scope.changeRefresh();
-    }
 
     var processTickets = function(data) {
         data.forEach(processTicket);
@@ -154,5 +104,4 @@ function Personal($scope, $http, $timeout, pref) {
     }
 
     loadData();
-    //$scope.changeRefresh(); //initial kickoff
 }

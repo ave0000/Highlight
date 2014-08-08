@@ -8,31 +8,35 @@
     <script type='text/javascript' src="//ajax.googleapis.com/ajax/libs/angularjs/1.3.0-beta.5/angular.min.js"></script>
     <script type='text/javascript' src="angtable.js"></script>
     <script type='text/javascript' src="score/score.js"></script>
+    <style>
+    .pulsate {
+        background:red;
+        transition:  60s ease-in;
+    }
+    </style>
     <script language="javascript">
 "use strict";
-app.filter('timeSince', function(){
-    return function(intime) {
-        var secs = (Date.now() - intime)/1000|0;
-        var mins = (secs/60|0)%60;
-        return (secs/3600 |0) + (mins < 10 ? ':0' : ':') + mins;
-    }
-});
-app.filter('scoreCalc',function(){
-    return ticketScore;
-});
-app.filter('trust', ['$sce', function($sce){//needed for ng-bind-html
-        return function(text) {
-            return $sce.trustAsHtml(text);
-        };
-}]);
 
 app.config(['$locationProvider',
     function($locationProvider){
         $locationProvider.html5Mode(true);
     }]);
 
+app.directive('enablePulsating', function($timeout) {
+  return{
+    link: function(scope,element,attrs) {
+      scope.$watch('timestamp', function(newVal, oldVal) {
+      if(newVal != oldVal) {
+        element.removeClass('pulsate');
+        $timeout(function(){element.addClass('pulsate');},30000);
+      }
+    })
+    }
+  }
+});
+
 function Live($scope, $http, $timeout, pref, $location) {
-    $scope.queueRefreshTime = 120;
+    $scope.queueRefreshTime = 15;
     $scope.predicate = 'Score';
     $scope.reverse = true;
     $scope.feedbacks = [];
@@ -84,8 +88,8 @@ function Live($scope, $http, $timeout, pref, $location) {
             catch(e) {console.log(data)}
 
             if(sub && Array.isArray(sub.tickets)) {
-                $scope.$apply(gotTicketList(sub.tickets));
-                $scope.timestamp = sub.timestamp;
+                $scope.$apply(gotTicketList(sub));
+
                 //console.log("called gotTicketList on " + Date(sub.timestamp));
             }else{
                 console.log("received:", data);
@@ -150,7 +154,7 @@ function Live($scope, $http, $timeout, pref, $location) {
         t.ticket = t.number;
         t.ticketUrl=t.ticket_link+t.ticket;
         t.accountUrl=t.account_link+t.account_number;
-        if(t.source =="ServermillProd")
+        if(t.account_link =="https://us.cloudcontrol.rackspacecloud.com/customer/")
             t.ticketUrl += "/edit"
 
         //timezone issue i guess?
@@ -187,7 +191,9 @@ function Live($scope, $http, $timeout, pref, $location) {
         }
     }
 
-    var gotTicketList = function(tickets) {
+    var gotTicketList = function(sub) {
+        $scope.timestamp = sub.timestamp;
+        var tickets = sub.tickets;
         var old = $scope.feedbacks;
         var len = old.length;
         var newt = [];
@@ -242,8 +248,7 @@ function Live($scope, $http, $timeout, pref, $location) {
     }
 
     $scope.changeSort = function(column) {
-        if($scope.predicate === column)
-                $scope.reverse = !$scope.reverse;
+        if($scope.predicate === column) $scope.reverse = !$scope.reverse;
         $scope.predicate = column;
     }
 
@@ -251,16 +256,10 @@ function Live($scope, $http, $timeout, pref, $location) {
         //if it's already showing, then toggle it off
         if(t.lastComment) return t.lastComment = "";
 
-        //prepopulate for feels
         t.lastComment = "Fetching last comment";
 
-        var httpRequest = $http({
-            method: 'GET',
-            url: '/api/v1/lastcomment?ticket='+t.ticket,
-            cache: true,
-        }).success(function(data, status){
-            t.lastComment = data.comment || data;
-        });
+        $http.get('/api/v1/lastcomment?ticket='+t.ticket,{cache: true})
+            .success(function(data, status){t.lastComment = data.comment || data;});
     }
 
     $scope.showing = {columns:$scope.columns};
@@ -270,10 +269,7 @@ function Live($scope, $http, $timeout, pref, $location) {
         jsonSocket.send(JSON.stringify(["stats"]));
     }
 
-    pref.watch('queueListSelect',$scope);
-    pref.watch('predicate',$scope);
-    pref.watch('reverse',$scope);
-    pref.watch('columns',$scope);
+
 
     //refresh the queue when any of these are changed (blindly, but buffered)
     $scope.$watch('queueListSelect + queueRefreshTime + filterListSelect', 
@@ -304,20 +300,22 @@ function Live($scope, $http, $timeout, pref, $location) {
   <div class="rs-inner">
     <div class="rs-container">
   <div ng-app="Highlight" >
-    <div ng-controller="Summary">
+    <!--<div ng-controller="Summary">
         <a ng-show="hideSummary" ng-click="hideSummary = !hideSummary" alt="Hide summary cards">Show Summaries</a>
-    </div>
+    </div>-->
 <div ng-controller="Live" id="queueTable" class="rs-content rs-panel">
         <label for=queueList>Queue</label>
-        <select id="queueList" ng-model="queueListSelect" ng-options="q.filter as q.profile for q in queueList">
+        <select id="queueList" ng-model="queueListSelect" ng-options="q.filter as q.profile for q in queueList" auto-save>
             <option value='All' selected="true">All</option>
         </select>
         <label for=specialFilter>Filters</label>
-        <input id=search ng-model=filterSearch placeholder="Local Filter">
-        <label for=timeout>Refresh:</label><input style="display:none;" id=timeout size=2 value="3" ng-model="queueRefreshTime">
+        <input id=search ng-model=filterSearch placeholder="Local Filter" auto-save>
+        <input type=hidden ng-model=reverse auto-save>
+        <input type=hidden ng-model=predicate auto-save>
+        <label for=timeout>Refresh:</label><input style="display:none;" id=timeout size=2 value="3" ng-model="queueRefreshTime" auto-save>
         <button ng-controller="Flash" ng-click="flashScreen();demand();flarp();">&#8623;</button>
         <span ng-class="{hide:!gettingFeedback}" class=loading>Loading</span>
-        <span ng-bind="timestamp|date:'M/d/yy h:mm:ss a'"></span>
+        <span enable-Pulsating ng-bind="timestamp|date:'M/d/yy h:mm:ss a'"></span> 
         <table class="rs-list-table rs-select-table ticketTable">
             <col class="rs-table-status">
             <col ng-repeat="c in showing.columns" class="ticketColumn{{c}}">

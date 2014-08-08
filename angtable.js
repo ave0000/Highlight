@@ -14,8 +14,29 @@ app.filter('timeCalc', function() {
     }
 });
 
+app.filter('timeSince', function(){
+    return function(intime) {
+        var secs = (Date.now() - intime)/1000|0;
+        var mins = (secs/60|0)%60;
+        return (secs/3600 |0) + (mins < 10 ? ':0' : ':') + mins;
+    }
+});
+
 app.filter('summaryColor',function(){
     return function(secs) {
+        if(secs % 1 !== 0 || secs < 10800)
+            return 'green';
+        else if (secs < 21600)
+            return 'yellow';
+        else
+            return 'red';
+    }
+});
+
+app.filter('testColor',function(){
+    return function(intime) {
+        var secs = (Date.now() - intime);
+        console.log(secs);
         if(secs % 1 !== 0 || secs < 10800)
             return 'green';
         else if (secs < 21600)
@@ -31,6 +52,16 @@ app.filter('noSpaces',function(){
 		else return s.replace(/ /g,'');
 	}
 });
+
+//requres score.js
+app.filter('scoreCalc',function(){
+    return ticketScore;
+});
+app.filter('trust', ['$sce', function($sce){//needed for ng-bind-html
+        return function(text) {
+            return $sce.trustAsHtml(text);
+        };
+}]);
 
 //service to handle saving and loading preferences
 app.service('pref',function($http){
@@ -65,6 +96,39 @@ app.service('pref',function($http){
             if (newval!==undefined && newval !== oldval)
                 pref.save(key,newval);
         });
+    }
+});
+
+//Directive to automatically persist a field's value.
+app.directive('autoSave', function($timeout,$http) {
+    var prefurl='jtable.php';
+    var save = function(key,val){
+        var prefs = {last: Date.now()};
+        prefs[key] = val;
+        console.log('Autosaving '+key+' as:"'+val+'"');
+        $http.post(prefurl+"?userPrefset",prefs);
+    }
+
+    return {
+        link: function($scope, $element, $attrs) {
+            var savePromise;
+            var key = $attrs.ngModel;
+
+            $http.get(prefurl+'?userPrefs='+key)
+                .then(function (response) {
+                    if(response.data !==undefined && response.data[key] !== undefined) {
+                        console.log("Autosave found pref: " + key + " = '" + response.data[key] + "'");
+                        $scope[key] = response.data[key];
+                    }
+                });
+
+            $scope.$watch(key, function(newval, oldval) {
+                if (newval !== undefined && newval != oldval) {
+                    $timeout.cancel(savePromise);
+                    savePromise = $timeout(function() {save(key,newval);}, 750);
+                }
+            });
+        }
     }
 });
 
@@ -148,7 +212,7 @@ function Summary($scope, $http, $timeout,pref) {
     };
     //fetch the list of profiles to render
     //instead, we could have a list of user selected profiles to watch
-    $scope.loadData = function() {
+     function loadData() {
         var httpRequest = $http.get('profile_list.inc')
         .success(function(data){
             $scope.profiles = data;
@@ -159,172 +223,14 @@ function Summary($scope, $http, $timeout,pref) {
         });
     };
 
-    pref.watch('hideSummary',$scope);
     $scope.$watch('hideSummary', function(newval,oldval){
         if(newval == false && oldval== true)
-            $scope.loadData();
+            loadData();
         else if(newval == true && requestSocket) {
             requestSocket.close();
         }
     });
-    //using a timeout to not block further rendering
-    if($scope.hideSummary == false) $timeout($scope.loadData,0);
-}
-
-function Dynamic($scope, $http, $timeout, pref) {
-    $scope.queueRefreshTime = 30;
-    $scope.predicate = 'Score';
-    $scope.reverse = true;
-    $scope.feedbacks = [];
-    $scope.queueList = [];
-    $scope.columns = ['Tickets','Age','Score','Account','Subject','Status','OS'];
-
-    pref.watch('queueListSelect',$scope);
-    //pref.watch('filterListSelect',$scope);
-    pref.watch('queueRefreshTime',$scope);
-    pref.watch('filterSearch',$scope);
-    pref.watch('predicate',$scope);
-    pref.watch('reverse',$scope);
-
-    //refresh the queue when any of these are changed (blindly, but buffered)
-    $scope.$watch('queueListSelect + queueRefreshTime + filterListSelect', 
-        function(){$scope.changeRefresh();} );
-
-    $scope.$watch('showing.Tickets.length',function(len) {
-        if(len != undefined /*&& len != window.parent.document.title*/)
-            window.parent.document.title = len + ' - Highlight';});
-
-    $scope.getQueueList = function() {
-        var httpRequest = $http({
-            method: 'GET',
-            url: 'jtable.php?showProfiles',
-            cache: true,
-        }).success(function(data, status){$scope.queueList = data;});
-    }
-
-    $scope.getFilterList = function() {
-        var httpRequest = $http({
-            method: 'GET',
-            url: 'jtable.php?showFilters',
-            cache: true,
-        }).success(function(data, status) {
-            $scope.filterList = data;
-        });
-        $scope.filterList = '[Loading]';
-    };
-
-    $scope.changeRefresh = function() {//modifications buffer
-        $timeout.cancel($scope.refreshTimeTimer);
-        $scope.refreshTimeTimer = $timeout($scope.loadFeedback,400);
-    }
-
-    var addTicket = function(t) {
-        if(!t.sev || t.sev == "normal") 
-            t.sev = "Standard";
-        if(!t.aname) t.aname = t.account;
-        if(t.iscloud == "1") {
-            var ticket = t.ticket.replace('ZEN_','');
-            t.ticketUrl='https://rackspacecloud.zendesk.com/tickets/'+ticket;
-            t.accountUrl='https://us.cloudcontrol.rackspacecloud.com/customer/'+t.account+'/servers';
-        }else{
-            t.ticketUrl='https://core.rackspace.com/ticket/'+t.ticket;
-            t.accountUrl='https://core.rackspace.com/account/'+t.account;
-        }
-        return t;
-    }
-
-    $scope.loadFeedback = function() {
-        $timeout.cancel($scope.timeOutHolder);
-        var options = 'queue';
-        if($scope.queueListSelect != undefined)
-            options = options+'='+encodeURIComponent($scope.queueListSelect);
-        if($scope.filterListSelect != undefined) {
-            options = options+'&filter='+encodeURIComponent($scope.filterListSelect.name);
-            // TODO: if filterListSelect option is different than filterList option then ...
-            if($scope.filterListSelect.parameters != undefined){
-                options += '&filterOpt='+encodeURIComponent($scope.filterListSelect.parameters[0].value);
-            }
-        }
-        $scope.gettingFeedback = true;
-        var httpRequest = $http({
-            method: 'GET',
-            url: 'jtable.php?'+options,
-        }).success(function(data, status) {
-            var retryIn = $scope.queueRefreshTime*1000;
-            if(data == '"try again soon"')
-                retryIn = 500;
-            else if(!data || !(data instanceof Array))
-                data = [{"subject":"None"}];
-            else{
-                var localList = [];//build an index
-                var old = $scope.feedbacks;
-                var len = old.length;
-                data.forEach(function(t) {
-                    localList[t.ticket] = true;
-                    var i = len;
-                    while(i--)
-                        if(old[i].ticket == t.ticket)
-                            return angular.extend(old[i],t);
-                    old.push(addTicket(t));
-                });
-                while(len--){//if it doesn't exist in the list,
-                    if(!localList[old[len].ticket]){
-                        old.splice(len,1);//remove it.
-                    }
-                }                
-                $scope.gettingFeedback = false;
-            }
-            $scope.timeOutHolder = $timeout($scope.loadFeedback, retryIn);
-        });
-    };
-
-    var sortAge = function(t) {return parseInt(t.age_seconds,10);};
-    var sortScore = function(t) {return (t.score=='-')?9999999:parseInt(t.score,10);};
-    var sortPlatform = function(t) {return t.platform;};
-    var sortSev = function(t) {
-        if(t.sev == 'emergency') return 9000;
-        else if(t.sev == 'urgent') return 1000;
-        else return 0;
-    };
-
-    //some columns don't sort right
-    //override them here
-    $scope.getOrder = function() {
-        switch($scope.predicate){
-            case undefined:
-            case '': 
-            case 'Score': return sortScore;
-            case 'Subject': return 'subject';
-            case 'Account': return 'aname';
-            case 'Status': return 'status';
-            case 'Age': return sortAge;
-            case 'OS': return sortPlatform;
-            case 'Ticket': return sortSev;
-            default: return $scope.predicate;
-        }
-    }
-    $scope.changeSort = function(column) {
-        if($scope.predicate === column)
-                $scope.reverse = !$scope.reverse;
-        $scope.predicate = column;
-    }
-
-    $scope.getComment = function(t) {
-        //if it's already showing, then toggle it off
-        if(t.lastComment) return t.lastComment = "";
-
-        //prepopulate for feels
-        t.lastComment = "Fetching last comment";
-
-        var httpRequest = $http({
-            method: 'GET',
-            url: 'ctk/query.php?ticket='+t.ticket,
-            cache: true,
-        }).success(function(data, status){
-            console.log(data.lastComment || data);
-            t.lastComment = data.lastComment || data;
-        });
-    }
+    loadData();
 }
 
 function Flash($scope, $timeout) {

@@ -18,11 +18,11 @@
                         <div ng-controller="Personal" class="rs-content rs-panel" >
                             <form ng-model="potato">
                                 <span ng-bind="title">{{showingTickets}} tickets assigned to {{sso}}</span>
-                                <label for=ticketType>of type</label><select id=ticketType ng-model="statusType" auto-save="asdfasdf()">
+                                <label for=ticketType>of type</label><select id=ticketType ng-model="statusType" auto-save>
                                 		<option value=4>Active</option>
                                 		<option value=8>Open</option>
                                 	</select>
-                                <label for=timeout>Refreshing in</label><input id=timeout size=2 value="30" ng-model="refreshTime" auto-save="asdfasdf()">
+                                <label for=timeout>Refreshing in</label><input id=timeout size=2 value="30" ng-model="refreshTime" auto-save>
                                 <button ng-controller="Flash" ng-click="changeRefresh();flashScreen();">&#8623;</button>
                                 <span ng-show="loading">Loading</span>
                             </form>
