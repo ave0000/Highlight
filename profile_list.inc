@@ -1,12 +1,12 @@
 [
     {
-        "filter": "ent+all",
+        "filter": "ent",
         "latencyCount": 20,
         "profile": "Enterprise All",
         "shortName": "All"
     },
     {
-        "filter": "ent+all - watchlist",
+        "filter": "ent+all+watchlist",
         "latencyCount": 20,
         "profile": "Enterprise All - Watchlist",
         "shortName": "All - Watchlist"
@@ -174,58 +174,10 @@
         "shortName": "ARIC "
     },
     {
-        "filter": "ent+implementation",
-        "latencyCount": 15,
-        "profile": "Enterprise Implementation",
-        "shortName": "Imp"
-    },
-    {
-        "filter": "das",
-        "latencyCount": 15,
-        "profile": "Storage - DAS",
-        "shortName": "DAS"
-    },
-    {
-        "filter": "nas",
-        "latencyCount": 15,
-        "profile": "Storage - NAS",
-        "shortName": "NAS"
-    },
-    {
-        "filter": "san",
-        "latencyCount": 15,
-        "profile": "Storage - SAN",
-        "shortName": "SAN"
-    },
-    {
-        "filter": "mysql",
-        "latencyCount": 15,
-        "profile": "DBA - MySQL",
-        "shortName": "MySQL"
-    },
-    {
-        "filter": "mssql",
-        "latencyCount": 15,
-        "profile": "DBA - MSSQL",
-        "shortName": "MSSQL"
-    },
-    {
-        "filter": "oracle",
-        "latencyCount": 15,
-        "profile": "DBA - Oracle",
-        "shortName": "Oracle"
-    },
-    {
         "filter": "cas",
         "latencyCount": 15,
         "profile": "Critical Sites",
         "shortName": "CAS"
-    },
-    {
-        "filter": "virt",
-        "latencyCount": 15,
-        "profile": "Virtualization",
-        "shortName": "Virt"
     },
     {
         "filter": "ent+netsec",
@@ -234,9 +186,9 @@
         "shortName": "NetSec"
     },
     {
-        "filter": "segsupp",
+        "filter": "mbu+mbur",
         "latencyCount": 15,
-        "profile": "Segment Support",
-        "shortName": "SegSup"
+        "profile": "Backup",
+        "shortName": "MBU"
     }
 ]
