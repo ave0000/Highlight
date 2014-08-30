@@ -154,7 +154,8 @@ function Live($scope, $http, $timeout, pref, $location) {
         t.ticket = t.number;
         t.ticketUrl=t.ticket_link+t.ticket;
         t.accountUrl=t.account_link+t.account_number;
-        if(t.account_link =="https://us.cloudcontrol.rackspacecloud.com/customer/")
+        if(t.account_link =="https://us.cloudcontrol.rackspacecloud.com/customer/"||
+		t.account_link =="https://lon.cloudcontrol.rackspacecloud.com/customer/")
             t.ticketUrl += "/edit"
 
         //timezone issue i guess?
