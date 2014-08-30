@@ -3,7 +3,7 @@ var redis = require('redis');
 require('console-ten').init(console);
 
 var REDIS_URL = '/var/run/redis/redis.sock';
-var PECAN_API = 'http://localhost/pecan-api/api/v2';
+var PECAN_API = 'http://localhost/api/v2';
 
 var db = redis.createClient(REDIS_URL);
 db.on("error", function(err) {
